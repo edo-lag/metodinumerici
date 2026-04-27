@@ -1,0 +1,198 @@
+%=============================================================
+% Capitolo 4 — Metodi Iterativi per Sistemi Lineari
+%=============================================================
+\chapter{Metodi Iterativi per Sistemi Lineari}
+\label{ch:iterativi}
+
+\section{Motivazione}
+
+I metodi diretti richiedono $\mathcal{O}(n^3)$ operazioni e $\mathcal{O}(n^2)$ di
+memoria: per sistemi di grandi dimensioni (e.g.\ $n > 10^6$, tipici in data science e
+simulazione) questo è proibitivo. I \textbf{metodi iterativi} costruiscono una
+successione $\{x^{(k)}\}$ che converge alla soluzione $x^*$ di $Ax = b$, e spesso
+richiedono solo $\mathcal{O}(n)$ operazioni per iterazione se $A$ è sparsa.
+
+%------------------------------------------------------------
+\section{Framework generale: splitting della matrice}
+\label{sec:splitting}
+%------------------------------------------------------------
+
+L'idea comune è \textbf{splittare} la matrice $A$ come:
+\begin{equation}
+  A = M - N,
+  \label{eq:splitting}
+\end{equation}
+dove $M$ è una matrice scelta in modo che $Mx = c$ sia facile da risolvere.
+Sostituendo in $Ax = b$:
+\begin{equation}
+  Mx = Nx + b \implies x = M^{-1}Nx + M^{-1}b.
+  \label{eq:iter_gen}
+\end{equation}
+
+Questo definisce la \textbf{iterazione stazionaria}:
+\begin{equation}
+  x^{(k+1)} = \underbrace{M^{-1}N}_{B}\, x^{(k)} + \underbrace{M^{-1}b}_{c},
+  \label{eq:iter_staz}
+\end{equation}
+dove $B = M^{-1}N = M^{-1}(M - A) = I - M^{-1}A$ è la \textbf{matrice di iterazione}.
+
+Decomponiamo $A$ nei suoi componenti diagonale, triangolare inferiore e superiore:
+\begin{equation}
+  A = D + L + U,
+  \label{eq:DLU}
+\end{equation}
+dove:
+\begin{itemize}
+  \item $D = \operatorname{diag}(a_{11}, \ldots, a_{nn})$ è la parte diagonale;
+  \item $L$ è la parte strettamente triangolare inferiore ($l_{ij} = a_{ij}$ per $i > j$);
+  \item $U$ è la parte strettamente triangolare superiore ($u_{ij} = a_{ij}$ per $i < j$).
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Metodo di Jacobi}
+\label{sec:jacobi}
+%------------------------------------------------------------
+
+\begin{definition}[Metodo di Jacobi]
+Lo splitting di Jacobi è $M = D$, $N = -(L + U)$. L'iterazione è:
+\begin{equation}
+  x^{(k+1)} = D^{-1}\bigl(-(L+U)x^{(k)} + b\bigr),
+  \label{eq:jacobi_mat}
+\end{equation}
+ovvero, per ogni componente $i$:
+\begin{equation}
+  x_i^{(k+1)} = \frac{1}{a_{ii}}\left(b_i - \sum_{\substack{j=1 \\ j \neq i}}^n
+  a_{ij}\, x_j^{(k)}\right), \quad i = 1, \ldots, n.
+  \label{eq:jacobi_comp}
+\end{equation}
+\end{definition}
+
+\begin{remark}
+Ogni componente $x_i^{(k+1)}$ si calcola usando \emph{solo} le componenti
+dell'iterata precedente $x^{(k)}$: il metodo è \textbf{parallelizzabile}.
+\end{remark}
+
+La matrice di iterazione di Jacobi è:
+\begin{equation}
+  B_J = -D^{-1}(L + U) = I - D^{-1}A.
+  \label{eq:B_jacobi}
+\end{equation}
+
+%------------------------------------------------------------
+\section{Metodo di Gauss-Seidel}
+\label{sec:gauss_seidel}
+%------------------------------------------------------------
+
+\begin{definition}[Metodo di Gauss-Seidel]
+Lo splitting di Gauss-Seidel è $M = D + L$, $N = -U$. L'iterazione è:
+\begin{equation}
+  (D + L)\,x^{(k+1)} = -U\,x^{(k)} + b,
+  \label{eq:gs_mat}
+\end{equation}
+ovvero, per ogni componente $i$:
+\begin{equation}
+  x_i^{(k+1)} = \frac{1}{a_{ii}}\left(b_i
+  - \sum_{j=1}^{i-1} a_{ij}\, x_j^{(k+1)}
+  - \sum_{j=i+1}^{n} a_{ij}\, x_j^{(k)}\right), \quad i = 1, \ldots, n.
+  \label{eq:gs_comp}
+\end{equation}
+\end{definition}
+
+\begin{remark}[Spostamenti successivi]
+A differenza di Jacobi, Gauss-Seidel usa immediatamente i valori $x_j^{(k+1)}$ già
+calcolati (per $j < i$). Questo accelera tipicamente la convergenza, ma rende il
+metodo \textbf{non parallelizzabile} nella forma standard.
+\end{remark}
+
+La matrice di iterazione di Gauss-Seidel è:
+\begin{equation}
+  B_{GS} = -(D + L)^{-1}U.
+  \label{eq:B_gs}
+\end{equation}
+
+%------------------------------------------------------------
+\section{Criteri di convergenza}
+\label{sec:convergenza}
+%------------------------------------------------------------
+
+\subsection{Condizione necessaria e sufficiente}
+
+\begin{theorem}[Convergenza dei metodi iterativi stazionari]
+\label{thm:conv_iter}
+La successione $x^{(k+1)} = Bx^{(k)} + c$ converge alla soluzione di $Ax = b$
+per ogni $x^{(0)}$ se e solo se:
+\begin{equation}
+  \rho(B) < 1,
+  \label{eq:conv_cond}
+\end{equation}
+dove $\rho(B)$ è il raggio spettrale della matrice di iterazione $B$.
+\end{theorem}
+
+Più piccolo è $\rho(B)$, più rapida è la convergenza.
+
+\subsection{Condizione sufficiente: norma}
+
+\begin{corollary}
+Se esiste una norma matriciale $\|\cdot\|$ tale che $\|B\| < 1$, allora il metodo
+converge.
+\end{corollary}
+
+\subsection{Teorema per matrici a dominanza diagonale}
+
+\begin{definition}[Dominanza diagonale stretta per righe]
+$A \in \R^{n \times n}$ è \emph{strettamente a dominanza diagonale per righe} se:
+\begin{equation}
+  |a_{ii}| > \sum_{\substack{j=1 \\ j \neq i}}^n |a_{ij}|, \quad i = 1, \ldots, n.
+  \label{eq:dom_diag}
+\end{equation}
+\end{definition}
+
+\begin{theorem}[Convergenza con dominanza diagonale]
+\label{thm:dom_diag}
+Se $A$ è strettamente a dominanza diagonale per righe, allora i metodi di Jacobi e
+di Gauss-Seidel convergono entrambi.
+\end{theorem}
+
+\begin{proof}[Dimostrazione (Jacobi)]
+Per la matrice di iterazione $B_J = -D^{-1}(L+U)$:
+\begin{equation}
+  \|B_J\|_\infty = \max_i \sum_{j \neq i} \frac{|a_{ij}|}{|a_{ii}|} < 1,
+\end{equation}
+grazie alla dominanza diagonale stretta. Per il corollario precedente, Jacobi converge.
+\end{proof}
+
+\begin{example}[Sistema a dominanza diagonale]
+Consideriamo il sistema
+\[
+  \begin{pmatrix} 10 & -1 & 2 \\ -1 & 11 & -1 \\ 2 & -1 & 10 \end{pmatrix}
+  \begin{pmatrix} x_1 \\ x_2 \\ x_3 \end{pmatrix}
+  =
+  \begin{pmatrix} 6 \\ 25 \\ -11 \end{pmatrix}.
+\]
+La matrice è strettamente a dominanza diagonale ($10 > 1+2$, $11 > 1+1$, $10 > 2+1$),
+quindi Jacobi e Gauss-Seidel convergono entrambi.
+\end{example}
+
+%------------------------------------------------------------
+\section{Velocità di convergenza e criterio di arresto}
+\label{sec:stop}
+%------------------------------------------------------------
+
+L'errore al passo $k$ si propaga come:
+\begin{equation}
+  e^{(k)} = x^{(k)} - x^* = B^k e^{(0)},
+\end{equation}
+quindi $\|e^{(k)}\| \leq \|B\|^k \|e^{(0)}\|$.
+
+Il criterio di arresto più comune è sul \textbf{residuo relativo}:
+\begin{equation}
+  \frac{\|b - Ax^{(k)}\|}{\|b\|} < \text{tol},
+  \label{eq:stop}
+\end{equation}
+dove \texttt{tol} è la tolleranza desiderata (e.g.\ $10^{-8}$).
+
+\begin{remark}[Gauss-Seidel vs.\ Jacobi]
+In generale $\rho(B_{GS}) \leq \rho(B_J)^2$ (per matrici definite positive
+simmetriche): Gauss-Seidel converge circa il doppio più velocemente di Jacobi in
+termini di iterazioni. Tuttavia Jacobi è più adatto alla parallelizzazione.
+\end{remark}

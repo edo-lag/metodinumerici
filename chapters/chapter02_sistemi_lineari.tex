@@ -1,0 +1,194 @@
+%=============================================================
+% Capitolo 2 — Sistemi Lineari
+%=============================================================
+\chapter{Sistemi Lineari}
+\label{ch:sistemi}
+
+\section{Introduzione}
+
+Molti problemi applicativi in data science, ottimizzazione e simulazione si riducono
+alla risoluzione di un \textbf{sistema lineare}:
+\begin{equation}
+  Ax = b,
+  \label{eq:sistema}
+\end{equation}
+dove $A \in \R^{n \times n}$ è la matrice dei coefficienti, $b \in \R^n$ è il termine
+noto e $x \in \R^n$ è il vettore incognito da determinare.
+
+%------------------------------------------------------------
+\section{Richiami di algebra lineare}
+%------------------------------------------------------------
+
+\subsection{Matrici e operazioni fondamentali}
+
+Una matrice $A \in \R^{m \times n}$ ha $m$ righe e $n$ colonne. L'elemento in
+posizione $(i,j)$ si indica con $a_{ij}$.
+
+Forma esplicita:
+\begin{equation}
+  A =
+  \begin{pmatrix}
+    a_{11} & a_{12} & \cdots & a_{1n} \\
+    a_{21} & a_{22} & \cdots & a_{2n} \\
+    \vdots & \vdots & \ddots & \vdots \\
+    a_{m1} & a_{m2} & \cdots & a_{mn}
+  \end{pmatrix}.
+\end{equation}
+
+La \textbf{matrice trasposta} $A^\top \in \R^{n \times m}$ ha elementi $(A^\top)_{ij} = a_{ji}$.
+La \textbf{matrice coniugata trasposta} (o aggiunta hermitiana) è $A^* = \bar{A}^\top$.
+
+\subsection{Range e rango}
+
+\begin{definition}[Range e nucleo]
+Sia $A \in \R^{m \times n}$.
+\begin{itemize}
+  \item Il \emph{range} (o immagine) di $A$ è $\mathcal{R}(A) = \{Ax : x \in \R^n\} \subseteq \R^m$.
+  \item Il \emph{nucleo} di $A$ è $\mathcal{N}(A) = \{x \in \R^n : Ax = 0\} \subseteq \R^n$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Rango]
+Il \emph{rango} di $A$, indicato $\operatorname{rank}(A)$, è la dimensione di
+$\mathcal{R}(A)$.
+\end{definition}
+
+\subsection{Determinante}
+
+Per una matrice quadrata $A \in \R^{n \times n}$:
+\begin{itemize}
+  \item $\det(A) \neq 0 \iff A$ è non singolare (invertibile);
+  \item Se $A$ è triangolare, $\det(A) = \prod_{i=1}^n a_{ii}$;
+  \item $\det(AB) = \det(A)\det(B)$.
+\end{itemize}
+
+\subsection{Matrice inversa}
+
+Se $A$ è non singolare, esiste unica $A^{-1}$ tale che $AA^{-1} = A^{-1}A = I$.
+
+\begin{remark}
+Calcolare $A^{-1}$ esplicitamente è \emph{costoso} ($\mathcal{O}(n^3)$) e spesso
+\emph{mal condizionato}: in pratica si risolve $Ax = b$ senza mai calcolare $A^{-1}$.
+\end{remark}
+
+\subsection{Autovalori e autovettori}
+
+\begin{definition}
+$\lambda \in \mathbb{C}$ è un \emph{autovalore} di $A$ e $v \neq 0$ il corrispondente
+\emph{autovettore} se
+\begin{equation}
+  Av = \lambda v.
+  \label{eq:autovalore}
+\end{equation}
+\end{definition}
+
+Gli autovalori sono le radici del \emph{polinomio caratteristico} $\det(A - \lambda I) = 0$.
+
+\begin{definition}[Raggio spettrale]
+Il \emph{raggio spettrale} di $A$ è:
+\begin{equation}
+  \rho(A) = \max_i |\lambda_i|,
+  \label{eq:raggio_spettrale}
+\end{equation}
+dove $\lambda_1, \ldots, \lambda_n$ sono gli autovalori di $A$.
+\end{definition}
+
+%------------------------------------------------------------
+\section{Norme vettoriali}
+\label{sec:norme_vettoriali}
+%------------------------------------------------------------
+
+\begin{definition}[Norma vettoriale]
+Una funzione $\|\cdot\| : \R^n \to \R$ è una \emph{norma} se:
+\begin{enumerate}
+  \item $\|x\| \geq 0$ e $\|x\| = 0 \iff x = 0$ \quad (positività);
+  \item $\|\alpha x\| = |\alpha|\,\|x\|$ per ogni $\alpha \in \R$ \quad (omogeneità);
+  \item $\|x + y\| \leq \|x\| + \|y\|$ \quad (disuguaglianza triangolare).
+\end{enumerate}
+\end{definition}
+
+Le norme $p$ più comuni ($p \geq 1$) sono:
+\begin{align}
+  \|x\|_1   &= \sum_{i=1}^n |x_i|, \label{eq:norma1}\\
+  \|x\|_2   &= \sqrt{\sum_{i=1}^n x_i^2}, \label{eq:norma2}\\
+  \|x\|_\infty &= \max_{1 \leq i \leq n} |x_i|. \label{eq:normaInf}
+\end{align}
+
+\begin{theorem}[Equivalenza delle norme in $\R^n$]
+Tutte le norme su $\R^n$ sono equivalenti: per ogni coppia di norme
+$\|\cdot\|_\alpha$, $\|\cdot\|_\beta$ esistono costanti $c_1, c_2 > 0$ tali che
+\begin{equation}
+  c_1\,\|x\|_\alpha \leq \|x\|_\beta \leq c_2\,\|x\|_\alpha \quad \forall x \in \R^n.
+\end{equation}
+\end{theorem}
+
+\subsection{Disuguaglianza di Cauchy-Schwarz}
+
+\begin{theorem}[Cauchy-Schwarz]
+Per ogni $x, y \in \R^n$:
+\begin{equation}
+  |x^\top y| \leq \|x\|_2\,\|y\|_2.
+  \label{eq:cauchy_schwarz}
+\end{equation}
+\end{theorem}
+
+%------------------------------------------------------------
+\section{Norme matriciali}
+\label{sec:norme_matriciali}
+%------------------------------------------------------------
+
+\begin{definition}[Norma matriciale indotta]
+La norma matriciale \emph{indotta} (o subordinata) dalla norma vettoriale $\|\cdot\|$
+è:
+\begin{equation}
+  \|A\| = \sup_{x \neq 0} \frac{\|Ax\|}{\|x\|} = \max_{\|x\|=1} \|Ax\|.
+  \label{eq:norma_mat}
+\end{equation}
+\end{definition}
+
+Proprietà fondamentale: $\|Ax\| \leq \|A\|\,\|x\|$ (compatibilità).
+
+Le norme indotte più usate per $A \in \R^{m \times n}$:
+\begin{align}
+  \|A\|_1      &= \max_{1 \leq j \leq n} \sum_{i=1}^m |a_{ij}|
+                  \quad \text{(massima somma di colonna)}, \\
+  \|A\|_\infty &= \max_{1 \leq i \leq m} \sum_{j=1}^n |a_{ij}|
+                  \quad \text{(massima somma di riga)}, \\
+  \|A\|_2      &= \sigma_{\max}(A)
+                  \quad \text{(massimo valore singolare)}.
+\end{align}
+
+\begin{proposition}
+Per ogni norma matriciale indotta vale:
+\begin{equation}
+  \rho(A) \leq \|A\|.
+\end{equation}
+\end{proposition}
+
+%------------------------------------------------------------
+\section{Numero di condizionamento}
+\label{sec:condizionamento_mat}
+%------------------------------------------------------------
+
+\begin{definition}[Numero di condizionamento]
+Per una matrice non singolare $A$, il \emph{numero di condizionamento} rispetto alla
+norma $\|\cdot\|$ è:
+\begin{equation}
+  \kappa(A) = \|A\|\,\|A^{-1}\|.
+  \label{eq:cond}
+\end{equation}
+\end{definition}
+
+\begin{remark}
+Poiché $1 = \|I\| = \|AA^{-1}\| \leq \|A\|\,\|A^{-1}\|$, si ha sempre
+$\kappa(A) \geq 1$.
+\begin{itemize}
+  \item $\kappa(A) \approx 1$: matrice \emph{ben condizionata}.
+  \item $\kappa(A) \gg 1$: matrice \emph{mal condizionata}.
+\end{itemize}
+\end{remark}
+
+Il significato pratico di $\kappa(A)$ verrà approfondito nel
+\cref{ch:condizionamento}: in sintesi, $\kappa(A)$ indica di quante cifre
+significative si può perdere nella soluzione di $Ax = b$ a causa degli errori di
+arrotondamento.
