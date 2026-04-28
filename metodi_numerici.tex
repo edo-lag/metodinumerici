@@ -1,0 +1,589 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+
+\geometry{margin=2.5cm}
+
+\theoremstyle{definition}
+\newtheorem{definizione}{Definizione}[section]
+\newtheorem{teorema}{Teorema}[section]
+\newtheorem{corollario}{Corollario}[section]
+\newtheorem{osservazione}{Osservazione}[section]
+\newtheorem{esempio}{Esempio}[section]
+
+\title{\textbf{Metodi Numerici per Data Science}\\
+       \large Appunti delle lezioni}
+\author{}
+\date{a.a.\ 2025--2026}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introduzione e Rappresentazione Floating Point}
+% ============================================================
+
+\subsection{Algoritmo di Horner}
+
+Per valutare il polinomio
+\[
+  p(x) = a_n x^n + a_{n-1}x^{n-1} + \cdots + a_1 x + a_0
+\]
+l'algoritmo di \textbf{Horner} (o regola di Ruffini) riscrive $p(x)$ come
+\[
+  p(x) = a_0 + x\bigl(a_1 + x\bigl(a_2 + \cdots + x\,(a_{n-1} + x\,a_n)\cdots\bigr)\bigr).
+\]
+Il costo computazionale è $O(n)$ moltiplicazioni e $O(n)$ addizioni, ottimale per la valutazione polinomiale.
+
+\subsection{Rappresentazione in virgola mobile}
+
+Un \textbf{numero di macchina} in base $\beta$ con $m$ cifre di mantissa ed esponente $e \in [e_{\min}, e_{\max}]$ ha la forma
+\[
+  x = \pm\, 0.d_1 d_2 \cdots d_m \times \beta^e,
+  \qquad d_1 \neq 0 \;\text{(forma normalizzata)},
+  \quad d_i \in \{0,1,\ldots,\beta-1\}.
+\]
+
+\subsubsection{Standard IEEE 754}
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+Formato & Totale bit & Segno & Esponente & Mantissa \\
+\midrule
+Singola precisione  & 32 & 1 & 8  & 23 \\
+Doppia precisione   & 64 & 1 & 11 & 52 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+  \item Con $k$ bit per l'esponente si hanno $2^k = 256$ (singola) o $2048$ (doppia) configurazioni; due sono riservate (esponente tutto-$0$ e tutto-$1$), quindi si hanno $254$ (singola) o $2046$ (doppia) esponenti normalizzati.
+  \item Il \textbf{bit nascosto}: la prima cifra della mantissa normalizzata è sempre $1$ e non viene memorizzata (\emph{memorizzazione gratuita}).
+\end{itemize}
+
+\subsubsection{Insieme dei numeri di macchina}
+
+\[
+  \mathbb{M}(\beta, m, e_{\min}, e_{\max}) \subset \mathbb{R}
+\]
+
+I numeri reali al di fuori dell'intervallo rappresentabile vengono approssimati con:
+\begin{itemize}
+  \item \textbf{Troncamento}: $\operatorname{fl}(x) = 0.d_1 d_2 \cdots d_m \times \beta^e$ (si tagliano le cifre in eccesso).
+  \item \textbf{Arrotondamento}: si arrotonda all'$m$-esima cifra.
+\end{itemize}
+
+\begin{osservazione}
+I numeri di macchina sono discreti e distribuiti in modo non uniforme sulla retta reale; non è possibile rappresentare in modo esatto nessun numero reale arbitrario.
+\end{osservazione}
+
+% ============================================================
+\section{Lezione 2 -- Aritmetica Floating Point}
+% ============================================================
+
+\subsection{Errore di rappresentazione}
+
+Sia $x \in \mathbb{R}$ e $\hat{x} = \operatorname{fl}(x)$ la sua approssimazione di macchina. Si definisce:
+\begin{align*}
+  \text{errore assoluto:} & \quad |x - \hat{x}| \\
+  \text{errore relativo:} & \quad \frac{|x - \hat{x}|}{|x|}, \quad x \neq 0.
+\end{align*}
+
+\begin{esempio}
+Con $\beta = 10$, $m = 5$ cifre di mantissa:
+\[
+  x = 3{,}14157\overline{6}\times 10^{23}.
+\]
+\begin{itemize}
+  \item Troncamento: $\operatorname{fl}_T(x) = 3{,}1415 \times 10^{23}$.
+  \item Arrotondamento: $\operatorname{fl}_A(x) = 3{,}1416 \times 10^{23}$.
+\end{itemize}
+\end{esempio}
+
+\subsection{Epsilon di macchina}
+
+L'\textbf{epsilon di macchina} $\varepsilon_M$ è il più piccolo numero positivo tale che
+\[
+  \operatorname{fl}(1 + \varepsilon_M) > 1.
+\]
+In pratica misura la precisione relativa massima:
+\[
+  \varepsilon_M = \beta^{1-m}.
+\]
+
+Per lo standard IEEE 754:
+\[
+  \varepsilon_M \approx 10^{-7} \;\text{(singola)}, \qquad
+  \varepsilon_M \approx 10^{-16} \;\text{(doppia)}.
+\]
+
+\subsection{Aritmetica di macchina}
+
+Ogni operazione $\circ \in \{+,-,\times,\div\}$ viene eseguita come
+\[
+  x \,\tilde{\circ}\, y = \operatorname{fl}(x \circ y).
+\]
+L'aritmetica di macchina è regolata dallo standard IEEE 754 e i risultati vengono arrotondati dopo ogni operazione (nei \emph{registri}).
+
+\begin{osservazione}
+Un numero denormalizzato (sottointero) ha la prima cifra della mantissa uguale a $0$; permette di rappresentare numeri molto piccoli ($\approx \beta^{e_{\min}-1}$) ma con perdita di precisione (\emph{gradual underflow}).
+\end{osservazione}
+
+% ============================================================
+\section{Propagazione dell'errore e Condizionamento}
+% ============================================================
+
+\subsection{Condizionamento di un problema}
+
+Dato un problema $f: \mathbb{R}^n \to \mathbb{R}^m$, il \textbf{numero di condizionamento} misura quanto il risultato varia al variare dei dati:
+\[
+  K = \frac{\|\delta f\| / \|f\|}{\|\delta x\| / \|x\|}.
+\]
+
+\begin{itemize}
+  \item Problema \textbf{ben condizionato}: $K$ piccolo.
+  \item Problema \textbf{malcondizionato}: $K$ grande.
+\end{itemize}
+
+% ============================================================
+\section{Lezione 3 -- Sistemi Lineari}
+% ============================================================
+
+\subsection{Formulazione}
+
+Un sistema lineare $n \times n$ è
+\[
+  A\mathbf{x} = \mathbf{b},
+  \qquad
+  A \in \mathbb{R}^{n \times n},\quad
+  \mathbf{b} \in \mathbb{R}^n.
+\]
+In forma scalare:
+\[
+  \sum_{j=1}^{n} a_{ij} x_j = b_i, \quad i = 1, \ldots, n.
+\]
+
+\subsection{Nozioni di algebra lineare}
+
+\begin{definizione}[Rango e nucleo]
+Il \emph{rango} di $A$, $\operatorname{rank}(A)$, è la dimensione dello spazio delle colonne (o delle righe). Il \emph{nucleo} è $\ker(A) = \{\mathbf{x}: A\mathbf{x} = \mathbf{0}\}$.
+\end{definizione}
+
+\begin{definizione}[Matrice non singolare]
+$A$ è non singolare se $\operatorname{rank}(A) = n$, ovvero se $\det(A) \neq 0$; in tal caso esiste l'inversa $A^{-1}$.
+\end{definizione}
+
+\begin{osservazione}
+La soluzione formale $\mathbf{x} = A^{-1}\mathbf{b}$ è costosa da calcolare ($O(n^3)$) e numericamente instabile; in pratica si preferisce la fattorizzazione.
+\end{osservazione}
+
+\subsubsection{Matrice coniugata (hermitiana) e trasposta}
+\[
+  \bar{A} \quad (\text{coniugata}), \qquad A^T \quad (\text{trasposta}), \qquad A^H = \overline{A^T} \quad (\text{trasposta coniugata}).
+\]
+Una matrice reale è \emph{simmetrica} se $A = A^T$; è \emph{ortogonale} se $A^T A = I$.
+
+\subsubsection{Determinante di matrici triangolari}
+Se $A$ è triangolare (superiore o inferiore), allora
+\[
+  \det(A) = \prod_{i=1}^{n} a_{ii}.
+\]
+
+\subsubsection{Autovalori e autovettori}
+\[
+  A\mathbf{v} = \lambda\mathbf{v}, \quad \lambda \in \mathbb{C}, \quad \mathbf{v} \neq \mathbf{0}.
+\]
+L'equazione caratteristica è $\det(A - \lambda I) = 0$.
+
+\subsection{Norme vettoriali e matriciali}
+
+\begin{definizione}[Norma vettoriale]
+Una norma $\|\cdot\|$ su $\mathbb{R}^n$ soddisfa:
+positività, omogeneità e disuguaglianza triangolare.
+Norme $p$ comuni:
+\[
+  \|\mathbf{x}\|_p = \Bigl(\sum_{i=1}^n |x_i|^p\Bigr)^{1/p}, \quad p \geq 1; \qquad
+  \|\mathbf{x}\|_\infty = \max_i |x_i|.
+\]
+\end{definizione}
+
+\begin{teorema}[Cauchy--Schwarz]
+\[
+  |\mathbf{x}^T \mathbf{y}| \leq \|\mathbf{x}\|_2 \|\mathbf{y}\|_2.
+\]
+\end{teorema}
+
+\begin{osservazione}
+Tutte le norme su $\mathbb{R}^n$ sono equivalenti (a dimensione finita).
+\end{osservazione}
+
+\begin{definizione}[Norma matriciale indotta]
+Data una norma vettoriale $\|\cdot\|$, la norma matriciale indotta (o \emph{compatibile}) è
+\[
+  \|A\| = \sup_{\mathbf{x} \neq \mathbf{0}} \frac{\|A\mathbf{x}\|}{\|\mathbf{x}\|}.
+\]
+\end{definizione}
+
+Proprietà:
+\[
+  \|A\mathbf{x}\| \leq \|A\|\,\|\mathbf{x}\|, \qquad
+  \|AB\| \leq \|A\|\,\|B\|.
+\]
+
+% ============================================================
+\section{Lezione 4 -- Metodi Diretti: Fattorizzazione LU}
+% ============================================================
+
+\subsection{Matrici triangolari}
+
+Il sistema $A\mathbf{x} = \mathbf{b}$ è facile da risolvere quando $A$ è triangolare:
+\begin{itemize}
+  \item \textbf{Sostituzione in avanti} (triangolare inferiore $L$): $L\mathbf{y} = \mathbf{b}$.
+  \item \textbf{Sostituzione all'indietro} (triangolare superiore $U$): $U\mathbf{x} = \mathbf{y}$.
+\end{itemize}
+
+\subsection{Fattorizzazione LU (Eliminazione di Gauss)}
+
+\begin{teorema}
+Se $A \in \mathbb{R}^{n \times n}$ è non singolare e tutti i minori principali sono non nulli, allora esiste un'unica fattorizzazione
+\[
+  A = LU,
+\]
+con $L$ triangolare inferiore con diagonale unitaria e $U$ triangolare superiore.
+\end{teorema}
+
+La risoluzione di $A\mathbf{x} = \mathbf{b}$ si riduce a due sistemi triangolari:
+\[
+  L\mathbf{y} = \mathbf{b}, \qquad U\mathbf{x} = \mathbf{y}.
+\]
+
+\subsubsection{Algoritmo di eliminazione di Gauss}
+
+Al passo $k$, si eliminano le entrate sotto il \emph{pivot} $a_{kk}^{(k)}$:
+\[
+  m_{ik} = \frac{a_{ik}^{(k)}}{a_{kk}^{(k)}}, \quad i > k.
+\]
+Le matrici elementari di Gauss $L_k$ soddisfano
+\[
+  L_k A^{(k)} = A^{(k+1)},
+\]
+e la fattorizzazione finale è
+\[
+  U = L_{n-1} \cdots L_1 A, \qquad L = L_1^{-1} \cdots L_{n-1}^{-1}.
+\]
+
+Il costo è $O\!\left(\tfrac{2}{3}n^3\right)$ operazioni.
+
+\subsection{Pivoting}
+
+Per garantire stabilità numerica si usa il \textbf{pivoting parziale per righe}: ad ogni passo $k$ si scambia la riga corrente con quella che ha l'entrata di modulo massimo nella colonna $k$:
+\[
+  PA = LU,
+\]
+con $P$ matrice di permutazione.
+
+% ============================================================
+\section{Lezione 7 -- Metodi Iterativi}
+% ============================================================
+
+\subsection{Splitting della matrice}
+
+Idea: decomporre $A = M - N$, con $M$ facilmente invertibile, e iterare
+\[
+  M\mathbf{x}^{(k+1)} = N\mathbf{x}^{(k)} + \mathbf{b},
+  \qquad \mathbf{x}^{(k+1)} = M^{-1}N\,\mathbf{x}^{(k)} + M^{-1}\mathbf{b}.
+\]
+La matrice di iterazione è $Q = M^{-1}N = I - M^{-1}A$.
+
+\begin{teorema}[Condizione sufficiente di convergenza]
+Il metodo converge per ogni dato iniziale $\mathbf{x}^{(0)}$ se e solo se il raggio spettrale di $Q$ soddisfa
+\[
+  \rho(Q) < 1.
+\]
+\end{teorema}
+
+\subsection{Metodo di Jacobi}
+
+Si scrive $A = D + L + U$ (diagonale + triangolare inferiore strettamente + triangolare superiore strettamente). Il metodo di Jacobi usa $M = D$:
+\[
+  \mathbf{x}^{(k+1)} = D^{-1}(L + U)^{-}\mathbf{x}^{(k)} + D^{-1}\mathbf{b}.
+\]
+In componenti:
+\[
+  x_i^{(k+1)} = \frac{1}{a_{ii}}\Bigl(b_i - \sum_{j \neq i} a_{ij} x_j^{(k)}\Bigr).
+\]
+
+\subsection{Metodo di Gauss--Seidel}
+
+Usa $M = D + L$ (spostamenti successivi); le componenti già calcolate al passo $k+1$ vengono immediatamente riutilizzate:
+\[
+  x_i^{(k+1)} = \frac{1}{a_{ii}}\Bigl(b_i - \sum_{j < i} a_{ij} x_j^{(k+1)} - \sum_{j > i} a_{ij} x_j^{(k)}\Bigr).
+\]
+
+\begin{teorema}[Convergenza -- condizione sufficiente]
+Se $A$ è a \emph{diagonale dominante stretta} per righe, cioè
+\[
+  |a_{ii}| > \sum_{j \neq i} |a_{ij}| \quad \forall\, i,
+\]
+allora i metodi di Jacobi e Gauss--Seidel convergono.
+\end{teorema}
+
+% ============================================================
+\section{Lezione 8 -- Condizionamento dei Sistemi Lineari}
+% ============================================================
+
+\subsection{Numero di condizionamento di una matrice}
+
+\begin{definizione}
+Il numero di condizionamento di $A$ è
+\[
+  K(A) = \|A\|\,\|A^{-1}\|.
+\]
+\end{definizione}
+
+Proprietà: $K(A) \geq 1$; $K(I) = 1$; $K(A)$ non dipende da $\det(A)$.
+
+\subsection{Sensibilità della soluzione}
+
+Sia $A\mathbf{x} = \mathbf{b}$ il sistema esatto e $(A + \delta A)(\mathbf{x} + \delta\mathbf{x}) = \mathbf{b} + \delta\mathbf{b}$ il sistema perturbato. Allora:
+\[
+  \frac{\|\delta\mathbf{x}\|}{\|\mathbf{x}\|} \leq K(A)
+  \Bigl(\frac{\|\delta\mathbf{b}\|}{\|\mathbf{b}\|} + \frac{\|\delta A\|}{\|A\|}\Bigr).
+\]
+
+\subsection{Il residuo}
+
+Dato un vettore approssimato $\tilde{\mathbf{x}}$, il \textbf{residuo} è
+\[
+  \mathbf{r} = \mathbf{b} - A\tilde{\mathbf{x}}.
+\]
+L'errore relativo è legato al residuo da
+\[
+  \frac{\|\mathbf{x} - \tilde{\mathbf{x}}\|}{\|\mathbf{x}\|} \leq K(A)\,\frac{\|\mathbf{r}\|}{\|\mathbf{b}\|}.
+\]
+
+\begin{osservazione}
+Un residuo piccolo non implica un errore piccolo se $K(A)$ è grande.
+\end{osservazione}
+
+% ============================================================
+\section{Lezione 9 -- Approssimazione di Dati e Funzioni}
+% ============================================================
+
+\subsection{Problema generale}
+
+Dati $m+1$ punti $\{(x_i, f_i)\}_{i=0}^{m}$, vogliamo costruire una funzione $y(x)$ che:
+\begin{itemize}
+  \item \textbf{interpoli} i dati: $y(x_i) = f_i$ per ogni $i$;
+  \item \textbf{approssimi} i dati (minimi quadrati): minimizza $\sum_i (y(x_i) - f_i)^2$.
+\end{itemize}
+
+\subsection{Interpolazione polinomiale}
+
+Si cerca $p_n(x) \in \mathcal{P}_n$ (polinomi di grado $\leq n$) tale che $p_n(x_i) = f_i$ per $i=0,\ldots,n$.
+
+\subsubsection{Base delle potenze}
+Il sistema lineare che si ottiene usando la base $\{1, x, x^2, \ldots, x^n\}$ è il sistema di \textbf{Vandermonde}:
+\[
+  \begin{pmatrix} 1 & x_0 & \cdots & x_0^n \\ \vdots & & & \vdots \\ 1 & x_n & \cdots & x_n^n \end{pmatrix}
+  \begin{pmatrix} a_0 \\ \vdots \\ a_n \end{pmatrix}
+  =
+  \begin{pmatrix} f_0 \\ \vdots \\ f_n \end{pmatrix}.
+\]
+La matrice di Vandermonde è non singolare se le ascisse sono distinte, ma è malcondizionata.
+
+\subsubsection{Forma di Lagrange}
+
+I \textbf{polinomi fondamentali di Lagrange} sono
+\[
+  L_k(x) = \prod_{\substack{i=0 \\ i \neq k}}^{n} \frac{x - x_i}{x_k - x_i}, \qquad k = 0, \ldots, n.
+\]
+Proprietà: $L_k(x_j) = \delta_{kj}$.
+
+Il polinomio interpolante in forma di Lagrange è
+\[
+  p_n(x) = \sum_{k=0}^{n} f_k\, L_k(x).
+\]
+
+\begin{teorema}[Unicità]
+Il polinomio interpolante di grado $\leq n$ su $n+1$ punti distinti è unico.
+\end{teorema}
+
+% ============================================================
+\section{Lezione 10 -- Errore di Interpolazione}
+% ============================================================
+
+\subsection{Formula dell'errore}
+
+\begin{teorema}
+Sia $f \in C^{n+1}[a,b]$ e $p_n$ il polinomio interpolante su $n+1$ nodi distinti $x_0 < \cdots < x_n$ in $[a,b]$. Allora per ogni $\bar{x} \in [a,b]$ esiste $\xi \in (a,b)$ tale che
+\[
+  e_n(\bar{x}) = f(\bar{x}) - p_n(\bar{x}) = \frac{f^{(n+1)}(\xi)}{(n+1)!}\,\omega_{n+1}(\bar{x}),
+\]
+dove $\omega_{n+1}(x) = \prod_{i=0}^{n}(x - x_i)$.
+\end{teorema}
+
+\subsection{Stima dell'errore}
+
+Maggiorando:
+\[
+  |e_n(\bar{x})| \leq \frac{M_{n+1}}{(n+1)!}\,|\omega_{n+1}(\bar{x})|, \qquad
+  M_{n+1} = \max_{x \in [a,b]} |f^{(n+1)}(x)|.
+\]
+
+Con nodi equidistanti di passo $h = (b-a)/n$:
+\[
+  |\omega_{n+1}(\bar{x})| \leq \frac{h^{n+1}\,n!}{4},
+\]
+quindi
+\[
+  |e_n(\bar{x})| \leq \frac{M_{n+1}}{4(n+1)}\,h^{n+1}.
+\]
+
+\begin{osservazione}
+Aumentare il grado $n$ non garantisce convergenza (\emph{fenomeno di Runge}): con nodi equidistanti l'errore può crescere. Si preferisce usare nodi di Chebyshev.
+\end{osservazione}
+
+\subsection{Costante di Lebesgue}
+
+La costante di Lebesgue è
+\[
+  \Lambda_n = \max_{x \in [a,b]} \sum_{k=0}^{n} |L_k(x)|.
+\]
+Vale la disuguaglianza
+\[
+  \|f - p_n\|_\infty \leq (1 + \Lambda_n)\,\inf_{q \in \mathcal{P}_n} \|f - q\|_\infty.
+\]
+Con nodi equidistanti $\Lambda_n$ cresce esponenzialmente; con nodi di Chebyshev cresce come $O(\log n)$.
+
+% ============================================================
+\section{Lezioni 11--12 -- Minimi Quadrati e Fattorizzazione QR}
+% ============================================================
+
+\subsection{Problema ai minimi quadrati}
+
+Dato il sistema \emph{sovradeterminato} $A\mathbf{x} \approx \mathbf{b}$ con $A \in \mathbb{R}^{m \times n}$, $m > n$, si minimizza
+\[
+  S(\boldsymbol{\alpha}) = \sum_{i=1}^{m} \bigl(b_i - (A\boldsymbol{\alpha})_i\bigr)^2
+  = \|A\boldsymbol{\alpha} - \mathbf{b}\|_2^2.
+\]
+
+\subsubsection{Equazioni normali}
+
+La condizione del primo ordine dà le \textbf{equazioni normali}:
+\[
+  A^T A\,\hat{\boldsymbol{\alpha}} = A^T \mathbf{b}.
+\]
+La matrice $A^T A$ è simmetrica e semidefinita positiva; è definita positiva (e il sistema ha soluzione unica) se $A$ ha rango pieno.
+
+\begin{osservazione}
+Le equazioni normali sono spesso malcondizionate ($K(A^T A) = K(A)^2$); si preferisce la fattorizzazione QR.
+\end{osservazione}
+
+\subsection{Fattorizzazione QR}
+
+\begin{teorema}
+Ogni matrice $A \in \mathbb{R}^{m \times n}$, $m \geq n$, ammette una fattorizzazione
+\[
+  A = Q \begin{pmatrix} \hat{R} \\ 0 \end{pmatrix},
+\]
+con $Q \in \mathbb{R}^{m \times m}$ ortogonale e $\hat{R} \in \mathbb{R}^{n \times n}$ triangolare superiore (non singolare se $A$ ha rango pieno).
+\end{teorema}
+
+\subsubsection{Matrici di Householder}
+
+Fissato un vettore $\mathbf{z} \in \mathbb{R}^m$, la matrice di Householder è
+\[
+  H = I - 2\,\frac{\mathbf{v}\mathbf{v}^T}{\mathbf{v}^T\mathbf{v}},
+\]
+dove $\mathbf{v} = \mathbf{z} - \alpha\mathbf{e}_1$, $\alpha = \pm\|\mathbf{z}\|_2$. La matrice $H$ è simmetrica e ortogonale ($H^T H = I$) e trasforma $\mathbf{z}$ in $\alpha\mathbf{e}_1$.
+
+Si costruisce $Q = H_1^T \cdots H_n^T$ applicando successivamente le riflessioni:
+\[
+  H_n \cdots H_2 H_1 A = \begin{pmatrix} \hat{R} \\ 0 \end{pmatrix}.
+\]
+
+\subsection{Soluzione del problema ai minimi quadrati via QR}
+
+Con $A = Q\begin{pmatrix}\hat{R}\\0\end{pmatrix}$ e $Q^T\mathbf{b} = \begin{pmatrix}\mathbf{g}_1\\\mathbf{g}_2\end{pmatrix}$:
+\[
+  \|A\mathbf{x} - \mathbf{b}\|_2^2
+  = \Bigl\|Q\!\begin{pmatrix}\hat{R}\\\mathbf{0}\end{pmatrix}\!\mathbf{x} - \mathbf{b}\Bigr\|_2^2
+  = \Bigl\|\begin{pmatrix}\hat{R}\mathbf{x} - \mathbf{g}_1\\\mathbf{g}_2\end{pmatrix}\Bigr\|_2^2
+  = \|\hat{R}\mathbf{x} - \mathbf{g}_1\|_2^2 + \|\mathbf{g}_2\|_2^2.
+\]
+La soluzione si ottiene risolvendo il sistema triangolare superiore $\hat{R}\hat{\mathbf{x}} = \mathbf{g}_1$.
+
+% ============================================================
+\section{Lezione 12 -- Autovalori e Decomposizione SVD}
+% ============================================================
+
+\subsection{Autovalori}
+
+Sia $A \in \mathbb{R}^{n \times n}$. L'equazione caratteristica è
+\[
+  \det(A - \lambda I) = 0.
+\]
+Lo spettro di $A$ è $\sigma(A) = \{\lambda_1, \ldots, \lambda_n\} \subset \mathbb{C}$.
+
+Proprietà:
+\[
+  \det(A) = \prod_{i=1}^n \lambda_i, \qquad
+  \operatorname{tr}(A) = \sum_{i=1}^n \lambda_i.
+\]
+
+\begin{teorema}[Cerchi di Gershgorin]
+Ogni autovalore di $A$ appartiene all'unione dei cerchi
+\[
+  \mathcal{G}_i = \Bigl\{z \in \mathbb{C} : |z - a_{ii}| \leq R_i\Bigr\}, \qquad
+  R_i = \sum_{j \neq i} |a_{ij}|.
+\]
+\end{teorema}
+
+\subsection{Decomposizione ai Valori Singolari (SVD)}
+
+\begin{teorema}
+Ogni $A \in \mathbb{R}^{m \times n}$ ammette la decomposizione
+\[
+  A = U \Sigma V^T,
+\]
+con $U \in \mathbb{R}^{m \times m}$ e $V \in \mathbb{R}^{n \times n}$ ortogonali, e
+\[
+  \Sigma = \operatorname{diag}(\sigma_1, \sigma_2, \ldots, \sigma_{\min(m,n)}) \in \mathbb{R}^{m \times n},
+  \quad \sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{\min(m,n)} \geq 0.
+\]
+I valori $\sigma_i$ sono i \textbf{valori singolari} di $A$.
+\end{teorema}
+
+I valori singolari di $A$ sono le radici quadrate degli autovalori di $A^T A$:
+\[
+  \sigma_i = \sqrt{\lambda_i(A^T A)}.
+\]
+
+\subsubsection{Algoritmo pratico per autovalori e SVD}
+
+Per una matrice $A$ hermitiana ($A = A^H$), si utilizza:
+\begin{enumerate}
+  \item \textbf{Riduzione di Householder}: si riduce $A$ a forma tridiagonale (Hessenberg).
+  \item \textbf{Algoritmo QR iterativo}: si applica la fattorizzazione QR ripetutamente per convergere agli autovalori.
+  \item La SVD si ottiene come $A = Q D Q^{-1}$ con $D$ diagonale (autovalori sulla diagonale), poi $A = U\Sigma V^T$.
+\end{enumerate}
+
+\begin{osservazione}
+Il calcolo degli autovalori è intrinsecamente iterativo (non esiste una formula chiusa per $n \geq 5$ per il teorema di Abel--Ruffini).
+\end{osservazione}
+
+\end{document}
