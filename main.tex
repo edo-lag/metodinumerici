@@ -1,0 +1,245 @@
+%=============================================================
+% Metodi Numerici per Data Science
+% Appunti del Corso
+%=============================================================
+\documentclass[12pt, a4paper, twoside]{book}
+
+%------------------------------------------------------------
+% Encoding e lingua
+%------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[italian]{babel}
+
+%------------------------------------------------------------
+% Matematica
+%------------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+%------------------------------------------------------------
+% Layout e tipografia
+%------------------------------------------------------------
+\usepackage[
+  top=2.5cm,
+  bottom=2.5cm,
+  inner=3cm,
+  outer=2cm
+]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+
+%------------------------------------------------------------
+% Intestazioni e piè di pagina
+%------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[LO]{\nouppercase{\rightmark}}
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+%------------------------------------------------------------
+% Colori e grafica
+%------------------------------------------------------------
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\graphicspath{{images/}}
+
+%------------------------------------------------------------
+% Tabelle e liste
+%------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+
+%------------------------------------------------------------
+% Algoritmi
+%------------------------------------------------------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \textbf{do}}
+
+%------------------------------------------------------------
+% Referenze e link
+%------------------------------------------------------------
+\usepackage[
+  colorlinks=true,
+  linkcolor=NavyBlue,
+  citecolor=ForestGreen,
+  urlcolor=RoyalBlue
+]{hyperref}
+\usepackage[italian]{cleveref}
+
+%------------------------------------------------------------
+% Ambienti teoremi
+%------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Teorema}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollario}
+\newtheorem{proposition}[theorem]{Proposizione}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definizione}
+\newtheorem{example}[theorem]{Esempio}
+\newtheorem{remark}[theorem]{Osservazione}
+
+%------------------------------------------------------------
+% Notazioni
+%------------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\fl}{\operatorname{fl}}
+\newcommand{\eps}{\varepsilon}
+
+%=============================================================
+\begin{document}
+
+%------------------------------------------------------------
+% Frontespizio
+%------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Large\scshape Università degli Studi\par}
+  \vspace{0.5cm}
+  {\large Corso di Laurea in Data Science\par}
+
+  \vspace{3cm}
+
+  {\Huge\bfseries Metodi Numerici\par}
+  {\Huge\bfseries per Data Science\par}
+
+  \vspace{0.5cm}
+  \rule{0.6\textwidth}{0.4pt}
+
+  \vspace{1cm}
+  {\large\itshape Appunti del corso\par}
+
+  \vfill
+
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushleft}
+      \textbf{Studente}\\
+      Edoardo Laghi
+    \end{flushleft}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.45\textwidth}
+    \begin{flushright}
+      \textbf{Anno Accademico}\\
+      2025/2026
+    \end{flushright}
+  \end{minipage}
+
+  \vspace{2cm}
+\end{titlepage}
+
+%------------------------------------------------------------
+% Pagina dei diritti / note
+%------------------------------------------------------------
+\thispagestyle{empty}
+\null\vfill
+\noindent
+\textit{Questi appunti sono stati redatti durante il corso di Metodi Numerici per Data
+Science nell'Anno Accademico 2025/2026. Il materiale è basato sulle lezioni tenute a
+lezione e rappresenta una rielaborazione personale del programma del corso.}
+
+\vspace{1cm}
+\noindent
+\textit{Ultima revisione: \today}
+\newpage
+
+%------------------------------------------------------------
+% Indice
+%------------------------------------------------------------
+\tableofcontents
+\newpage
+
+%------------------------------------------------------------
+% Prefazione
+%------------------------------------------------------------
+\chapter*{Prefazione}
+\addcontentsline{toc}{chapter}{Prefazione}
+
+Questi appunti raccolgono i contenuti delle lezioni del corso di \emph{Metodi Numerici
+per Data Science}. Il corso si propone di introdurre i principali strumenti dell'analisi
+numerica con applicazioni alla scienza dei dati: dall'aritmetica in virgola mobile, alla
+risoluzione di sistemi lineari, all'approssimazione di funzioni e alla decomposizione
+spettrale di matrici.
+
+\medskip
+L'obiettivo è fornire una comprensione teorica dei metodi, insieme a indicazioni
+pratiche sulla loro implementazione ed efficienza computazionale.
+
+\medskip
+Il materiale è organizzato come segue:
+\begin{itemize}
+  \item \textbf{\Cref{ch:fp}}: Aritmetica in virgola mobile, standard IEEE 754,
+        epsilon di macchina e propagazione degli errori.
+  \item \textbf{\Cref{ch:sistemi}}: Sistemi lineari, spazi vettoriali, norme e numero
+        di condizionamento.
+  \item \textbf{\Cref{ch:diretti}}: Metodi diretti per la risoluzione di sistemi
+        lineari (eliminazione di Gauss, fattorizzazione LU).
+  \item \textbf{\Cref{ch:iterativi}}: Metodi iterativi stazionari (Jacobi,
+        Gauss-Seidel) e criteri di convergenza.
+  \item \textbf{\Cref{ch:condizionamento}}: Analisi del condizionamento dei sistemi
+        lineari e perturbazioni.
+  \item \textbf{\Cref{ch:interpolazione}}: Interpolazione polinomiale, polinomio di
+        Lagrange, errore di interpolazione, costante di Lebesgue.
+  \item \textbf{\Cref{ch:minimi_quadrati}}: Problema dei minimi quadrati,
+        fattorizzazione QR e matrici di Householder.
+  \item \textbf{\Cref{ch:autovalori}}: Autovalori, cerchi di Gershgorin,
+        decomposizione ai valori singolari (SVD) e algoritmo QR.
+\end{itemize}
+
+%------------------------------------------------------------
+% Capitoli
+%------------------------------------------------------------
+\include{chapters/chapter01_aritmetica_fp}
+\include{chapters/chapter02_sistemi_lineari}
+\include{chapters/chapter03_metodi_diretti}
+\include{chapters/chapter04_metodi_iterativi}
+\include{chapters/chapter05_condizionamento}
+\include{chapters/chapter06_interpolazione}
+\include{chapters/chapter07_minimi_quadrati}
+\include{chapters/chapter08_autovalori_svd}
+
+%------------------------------------------------------------
+% Bibliografia
+%------------------------------------------------------------
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{quarteroni}
+A.\ Quarteroni, R.\ Sacco, F.\ Saleri,
+\textit{Matematica Numerica},
+4a ed., Springer, 2014.
+
+\bibitem{nocedal}
+J.\ Nocedal, S.\ J.\ Wright,
+\textit{Numerical Optimization},
+2nd ed., Springer, 2006.
+
+\bibitem{trefethen}
+L.\ N.\ Trefethen, D.\ Bau III,
+\textit{Numerical Linear Algebra},
+SIAM, 1997.
+
+\bibitem{ieee754}
+\textit{IEEE Standard for Floating-Point Arithmetic},
+IEEE Std 754-2019, IEEE, 2019.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,178 @@
+%=============================================================
+% Capitolo 5 — Condizionamento dei Sistemi Lineari
+%=============================================================
+\chapter{Condizionamento dei Sistemi Lineari}
+\label{ch:condizionamento}
+
+\section{Il problema della perturbazione}
+
+Nella pratica i dati di un sistema lineare $Ax = b$ non sono mai noti con precisione
+infinita: sono affetti da errori di misura, di arrotondamento, o di approssimazione.
+È fondamentale capire \emph{quanto} la soluzione $x$ cambia al variare (anche
+leggermente) dei dati $A$ e $b$.
+
+%------------------------------------------------------------
+\section{Perturbazione solo sul termine noto}
+\label{sec:pert_b}
+%------------------------------------------------------------
+
+Consideriamo il sistema perturbato
+\begin{equation}
+  A(x + \delta x) = b + \delta b,
+  \label{eq:pert_b}
+\end{equation}
+dove $\delta b$ è una piccola perturbazione del termine noto e $\delta x$ è la
+conseguente perturbazione della soluzione. Sottraendo $Ax = b$:
+\begin{equation}
+  A\,\delta x = \delta b \implies \delta x = A^{-1}\delta b.
+\end{equation}
+
+Prendendo le norme:
+\begin{equation}
+  \|\delta x\| \leq \|A^{-1}\|\,\|\delta b\|.
+  \label{eq:bound_deltax}
+\end{equation}
+Poiché $\|b\| = \|Ax\| \leq \|A\|\,\|x\|$, si ottiene $\frac{1}{\|x\|} \leq
+\frac{\|A\|}{\|b\|}$. Combinando:
+
+\begin{equation}
+  \frac{\|\delta x\|}{\|x\|} \leq \|A\|\,\|A^{-1}\|\,\frac{\|\delta b\|}{\|b\|}
+  = \kappa(A)\,\frac{\|\delta b\|}{\|b\|}.
+  \label{eq:cond_b}
+\end{equation}
+
+%------------------------------------------------------------
+\section{Perturbazione sulla matrice e sul termine noto}
+\label{sec:pert_Ab}
+%------------------------------------------------------------
+
+Consideriamo ora il caso più generale in cui sia $A$ che $b$ sono perturbati:
+\begin{equation}
+  (A + \delta A)(x + \delta x) = b + \delta b.
+  \label{eq:pert_Ab}
+\end{equation}
+
+Espandendo e trascurando i termini del secondo ordine ($\delta A\,\delta x \approx 0$):
+\begin{equation}
+  A\,\delta x \approx \delta b - \delta A\, x,
+\end{equation}
+da cui $\delta x = A^{-1}(\delta b - \delta A\, x)$, e prendendo le norme:
+
+\begin{theorem}[Limitazione dell'errore relativo — caso generale]
+\label{thm:cond_gen}
+Se $\|\delta A\| < \|A^{-1}\|^{-1}$ (perturbazione piccola), allora:
+\begin{equation}
+  \frac{\|\delta x\|}{\|x + \delta x\|} \leq
+  \frac{\kappa(A)}{1 - \kappa(A)\,\frac{\|\delta A\|}{\|A\|}}
+  \left(\frac{\|\delta A\|}{\|A\|} + \frac{\|\delta b\|}{\|b\|}\right).
+  \label{eq:cond_gen}
+\end{equation}
+\end{theorem}
+
+\begin{remark}
+Il \cref{thm:cond_gen} mostra che l'errore relativo sulla soluzione è amplificato dal
+fattore $\kappa(A)$: se $\kappa(A) = 10^k$, si perdono fino a $k$ cifre significative
+nella soluzione rispetto alla precisione dei dati.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Interpretazione pratica del condizionamento}
+\label{sec:interpretazione}
+%------------------------------------------------------------
+
+In aritmetica in virgola mobile con epsilon di macchina $\eps_M$, le perturbazioni
+sui dati sono dell'ordine di $\eps_M$. La \cref{eq:cond_gen} implica che l'errore
+relativo sulla soluzione è approssimativamente:
+\begin{equation}
+  \frac{\|\delta x\|}{\|x\|} \approx \kappa(A)\,\eps_M.
+  \label{eq:errore_pratico}
+\end{equation}
+
+\begin{example}[Sistema mal condizionato]
+La \textbf{matrice di Hilbert} di ordine $n$, con elementi $h_{ij} = 1/(i+j-1)$,
+è notoriamente mal condizionata:
+\[
+  H_5 = \begin{pmatrix}
+    1 & \frac{1}{2} & \frac{1}{3} & \frac{1}{4} & \frac{1}{5} \\[4pt]
+    \frac{1}{2} & \frac{1}{3} & \frac{1}{4} & \frac{1}{5} & \frac{1}{6} \\[4pt]
+    \frac{1}{3} & \frac{1}{4} & \frac{1}{5} & \frac{1}{6} & \frac{1}{7} \\[4pt]
+    \frac{1}{4} & \frac{1}{5} & \frac{1}{6} & \frac{1}{7} & \frac{1}{8} \\[4pt]
+    \frac{1}{5} & \frac{1}{6} & \frac{1}{7} & \frac{1}{8} & \frac{1}{9}
+  \end{pmatrix}, \quad \kappa_2(H_5) \approx 4.77 \times 10^5.
+\]
+Con doppia precisione ($\eps_M \approx 10^{-16}$) l'errore relativo sulla soluzione
+è dell'ordine di $4.77 \times 10^5 \times 10^{-16} \approx 10^{-11}$: si perdono
+circa 5 cifre significative.
+\end{example}
+
+%------------------------------------------------------------
+\section{Stima del numero di condizionamento}
+\label{sec:stima_cond}
+%------------------------------------------------------------
+
+Calcolare $\kappa(A) = \|A\|\,\|A^{-1}\|$ esattamente richiede di conoscere $A^{-1}$,
+il che è costoso ($\mathcal{O}(n^3)$). In pratica:
+\begin{itemize}
+  \item Per la norma 2: $\kappa_2(A) = \sigma_{\max}(A)/\sigma_{\min}(A)$
+        (rapporto tra valore singolare massimo e minimo), calcolabile con la SVD.
+  \item Metodi di stima a basso costo (e.g.\ \texttt{rcond} in MATLAB/NumPy)
+        forniscono una stima di $1/\kappa(A)$ in $\mathcal{O}(n^2)$ una volta
+        calcolata la fattorizzazione LU.
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Residuo e soluzione calcolata}
+\label{sec:residuo}
+%------------------------------------------------------------
+
+Sia $\hat{x}$ la soluzione calcolata numericamente di $Ax = b$. Il
+\textbf{residuo} è:
+\begin{equation}
+  r = b - A\hat{x}.
+  \label{eq:residuo}
+\end{equation}
+
+Un residuo piccolo \textbf{non} implica necessariamente un errore piccolo. Il legame
+è:
+\begin{equation}
+  \frac{\|x - \hat{x}\|}{\|x\|} \leq \kappa(A)\,\frac{\|r\|}{\|b\|}.
+  \label{eq:residuo_errore}
+\end{equation}
+
+\begin{remark}[Backward e forward error]
+\begin{itemize}
+  \item Il \emph{backward error} (errore all'indietro) è $\|r\|/\|b\|$: misura di
+        quanto $\hat{x}$ risolve \emph{esattamente} un sistema perturbato.
+  \item Il \emph{forward error} (errore in avanti) è $\|x - \hat{x}\|/\|x\|$:
+        misura la distanza dalla soluzione vera.
+\end{itemize}
+Un metodo si dice \textbf{backward-stabile} se il backward error è dell'ordine di
+$\eps_M$.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Riepilogo}
+\label{sec:riepilogo_cond}
+%------------------------------------------------------------
+
+\begin{table}[htbp]
+  \centering
+  \caption{Effetto del numero di condizionamento sulla soluzione (doppia precisione,
+           $\eps_M \approx 10^{-16}$).}
+  \label{tab:condizionamento}
+  \begin{tabular}{ccc}
+    \toprule
+    $\kappa(A)$ & Cifre perse & Qualità \\
+    \midrule
+    $\sim 1$       & $\sim 0$  & Eccellente \\
+    $\sim 10^3$    & $\sim 3$  & Buona \\
+    $\sim 10^8$    & $\sim 8$  & Accettabile \\
+    $\sim 10^{12}$ & $\sim 12$ & Scarsa \\
+    $\sim 10^{16}$ & $\sim 16$ & Soluzione inattendibile \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+In sintesi: prima di risolvere un sistema lineare è \emph{sempre} buona pratica
+stimare $\kappa(A)$ per capire quante cifre significative ci si può aspettare nella
+soluzione.

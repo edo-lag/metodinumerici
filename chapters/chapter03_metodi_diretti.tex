@@ -1,0 +1,176 @@
+%=============================================================
+% Capitolo 3 — Metodi Diretti per Sistemi Lineari
+%=============================================================
+\chapter{Metodi Diretti per Sistemi Lineari}
+\label{ch:diretti}
+
+\section{Panoramica}
+
+I \textbf{metodi diretti} risolvono il sistema $Ax = b$ in un numero finito di
+operazioni aritmetiche, producendo (in aritmetica esatta) la soluzione esatta.
+Il costo è tipicamente $\mathcal{O}(n^3)$ operazioni in virgola mobile.
+
+L'idea centrale è \textbf{fattorizzare} la matrice $A$ nel prodotto di matrici più
+semplici — tipicamente triangolari o diagonali — per ridursi a sistemi facilmente
+risolvibili.
+
+%------------------------------------------------------------
+\section{Sistemi triangolari}
+\label{sec:triangolari}
+%------------------------------------------------------------
+
+\subsection{Sistema triangolare inferiore}
+
+Un sistema $Lx = b$ con $L$ triangolare inferiore ($l_{ij} = 0$ per $j > i$) si
+risolve con la \textbf{sostituzione in avanti} (\emph{forward substitution}):
+\begin{equation}
+  x_i = \frac{1}{l_{ii}}\left(b_i - \sum_{j=1}^{i-1} l_{ij}\, x_j\right),
+  \quad i = 1, 2, \ldots, n.
+  \label{eq:fwd_sub}
+\end{equation}
+
+\subsection{Sistema triangolare superiore}
+
+Un sistema $Ux = b$ con $U$ triangolare superiore ($u_{ij} = 0$ per $j < i$) si
+risolve con la \textbf{sostituzione all'indietro} (\emph{back substitution}):
+\begin{equation}
+  x_i = \frac{1}{u_{ii}}\left(b_i - \sum_{j=i+1}^{n} u_{ij}\, x_j\right),
+  \quad i = n, n-1, \ldots, 1.
+  \label{eq:bck_sub}
+\end{equation}
+
+Entrambe le sostituzioni hanno costo $\mathcal{O}(n^2)$.
+
+%------------------------------------------------------------
+\section{Fattorizzazione LU}
+\label{sec:lu}
+%------------------------------------------------------------
+
+\begin{definition}[Fattorizzazione LU]
+Una \emph{fattorizzazione LU} di $A \in \R^{n \times n}$ è la scrittura
+\begin{equation}
+  A = LU,
+  \label{eq:LU}
+\end{equation}
+dove $L$ è triangolare inferiore con elementi diagonali unitari ($l_{ii} = 1$) e
+$U$ è triangolare superiore.
+\end{definition}
+
+Con la fattorizzazione LU il sistema $Ax = b$ si risolve in due passi:
+\begin{align}
+  Ly &= b \quad \text{(forward substitution)}, \label{eq:forw}\\
+  Ux &= y \quad \text{(back substitution)}.  \label{eq:back}
+\end{align}
+Il costo totale è $\mathcal{O}(n^3)$ per la fattorizzazione e $\mathcal{O}(n^2)$ per
+ciascuna risoluzione successiva (utile quando si deve risolvere più sistemi con la
+stessa matrice $A$).
+
+%------------------------------------------------------------
+\section{Eliminazione di Gauss}
+\label{sec:gauss}
+%------------------------------------------------------------
+
+L'\textbf{eliminazione di Gauss} è l'algoritmo classico per calcolare la
+fattorizzazione LU. A ogni passo $k$ si elimina l'incognita $x_k$ dalle righe
+$k+1, \ldots, n$ mediante opportune combinazioni lineari.
+
+\subsection{Un passo dell'eliminazione}
+
+Al passo $k$ si ha a disposizione la matrice parzialmente eliminata
+$A^{(k)} = (a^{(k)}_{ij})$. Per ogni riga $i > k$ si calcola il
+\emph{moltiplicatore}:
+\begin{equation}
+  m_{ik} = \frac{a^{(k)}_{ik}}{a^{(k)}_{kk}},
+  \label{eq:moltiplicatore}
+\end{equation}
+e si aggiorna:
+\begin{equation}
+  a^{(k+1)}_{ij} = a^{(k)}_{ij} - m_{ik}\, a^{(k)}_{kj},
+  \quad j = k, k+1, \ldots, n.
+  \label{eq:update_gauss}
+\end{equation}
+
+L'elemento $a^{(k)}_{kk}$ si chiama \textbf{pivot} al passo $k$.
+
+\begin{algorithm}[htbp]
+  \caption{Eliminazione di Gauss (fattorizzazione LU)}
+  \label{alg:gauss}
+  \begin{algorithmic}[1]
+    \Require $A \in \R^{n \times n}$ non singolare
+    \Ensure $L, U$ tali che $A = LU$
+    \State $U \gets A$; \; $L \gets I_n$
+    \For{$k = 1$ \textbf{to} $n-1$}
+      \For{$i = k+1$ \textbf{to} $n$}
+        \State $m_{ik} \gets u_{ik} / u_{kk}$
+        \State $l_{ik} \gets m_{ik}$
+        \For{$j = k$ \textbf{to} $n$}
+          \State $u_{ij} \gets u_{ij} - m_{ik} \cdot u_{kj}$
+        \EndFor
+      \EndFor
+    \EndFor
+    \State \Return $L$, $U$
+  \end{algorithmic}
+\end{algorithm}
+
+Il costo dell'eliminazione di Gauss è $\frac{2}{3}n^3 + \mathcal{O}(n^2)$
+operazioni in virgola mobile.
+
+\begin{theorem}[Esistenza della fattorizzazione LU]
+La fattorizzazione LU senza pivoting esiste ed è unica se e solo se tutti i
+\emph{minori principali} di $A$ sono non nulli.
+\end{theorem}
+
+%------------------------------------------------------------
+\section{Pivoting}
+\label{sec:pivoting}
+%------------------------------------------------------------
+
+Nella pratica il pivot $a^{(k)}_{kk}$ può essere zero (impossibilità) o molto
+piccolo (instabilità numerica). Per evitare questi problemi si adotta il
+\textbf{pivoting parziale per colonne}: ad ogni passo $k$ si sceglie come pivot
+l'elemento di modulo massimo nella colonna $k$ tra le righe $k, k+1, \ldots, n$,
+e si scambiano le righe corrispondentemente.
+
+Con il pivoting parziale si ha la fattorizzazione:
+\begin{equation}
+  PA = LU,
+  \label{eq:PLU}
+\end{equation}
+dove $P$ è una \textbf{matrice di permutazione} che registra gli scambi di riga.
+
+\begin{remark}[Stabilità]
+L'eliminazione di Gauss con pivoting parziale è numericamente stabile per quasi
+tutte le matrici in pratica, sebbene esistano esempi patologici di instabilità.
+Il pivoting totale (su righe e colonne) è più stabile ma meno usato per il
+maggiore costo computazionale.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Matrici sparse e metodi a basso costo}
+\label{sec:sparse}
+%------------------------------------------------------------
+
+Quando $A$ ha molti elementi nulli (\emph{matrice sparsa}), la fattorizzazione LU
+standard non sfrutta la struttura e può produrre un \emph{fill-in} (riempimento
+degli zeri) costoso. Tecniche specializzate (reordering, fattorizzazioni incomplete)
+permettono di gestire efficientemente sistemi sparsi di grandi dimensioni.
+
+%------------------------------------------------------------
+\section{Costo computazionale e confronto}
+\label{sec:costo_diretti}
+%------------------------------------------------------------
+
+\begin{table}[htbp]
+  \centering
+  \caption{Costo computazionale dei principali metodi diretti.}
+  \label{tab:costo}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Operazione} & \textbf{Flop (ordine)} & \textbf{Note} \\
+    \midrule
+    Fattorizzazione LU             & $\tfrac{2}{3}n^3$ & una sola volta per $A$ \\
+    Forward/back substitution      & $n^2$             & per ogni $b$ \\
+    Calcolo esplicito di $A^{-1}$  & $2n^3$            & sconsigliato \\
+    \bottomrule
+  \end{tabular}
+\end{table}

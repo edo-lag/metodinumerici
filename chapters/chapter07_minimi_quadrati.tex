@@ -1,0 +1,154 @@
+%=============================================================
+% Capitolo 7 — Minimi Quadrati e Fattorizzazione QR
+%=============================================================
+\chapter{Minimi Quadrati e Fattorizzazione QR}
+\label{ch:minimi_quadrati}
+
+\section{Il problema dei minimi quadrati}
+\label{sec:mq_problema}
+
+Quando il numero di dati $m$ supera il numero di parametri $n$ (sistema
+\emph{sovradeterminato}), in generale non esiste $x \in \R^n$ tale che $Ax = b$
+con $A \in \R^{m \times n}$, $m > n$. Il problema dei \textbf{minimi quadrati}
+chiede di minimizzare il \emph{residuo}:
+\begin{equation}
+  \min_{x \in \R^n} \|Ax - b\|_2^2 = \min_{x \in \R^n} \sum_{i=1}^m \bigl(
+  (Ax)_i - b_i \bigr)^2.
+  \label{eq:mq}
+\end{equation}
+
+\subsection{Applicazione: fitting di dati}
+
+Dati $m$ punti $\{(x_i, f_i)\}_{i=1}^m$, si cerca una funzione
+$y(x) = \sum_{j=1}^n \alpha_j \varphi_j(x)$ (con $\varphi_j$ funzioni base
+fissate) che minimizzi:
+\begin{equation}
+  S = \sum_{i=1}^m \bigl(f_i - y(x_i)\bigr)^2.
+  \label{eq:mq_fit}
+\end{equation}
+Questo è esattamente \cref{eq:mq} con $a_{ij} = \varphi_j(x_i)$.
+
+%------------------------------------------------------------
+\section{Equazioni normali}
+\label{sec:equazioni_normali}
+%------------------------------------------------------------
+
+La soluzione del problema \cref{eq:mq} soddisfa le \textbf{equazioni normali}:
+\begin{equation}
+  A^\top A\, x = A^\top b.
+  \label{eq:normali}
+\end{equation}
+
+Se $A$ ha rango pieno ($\operatorname{rank}(A) = n$), la matrice $A^\top A$ è
+definita positiva e la soluzione è unica:
+\begin{equation}
+  x = (A^\top A)^{-1} A^\top b.
+  \label{eq:sol_mq}
+\end{equation}
+
+\begin{remark}[Mal condizionamento]
+La matrice $A^\top A$ ha numero di condizionamento $\kappa_2(A^\top A) =
+\kappa_2(A)^2$: risolvere le equazioni normali raddoppia il numero di cifre
+perse. È preferibile usare la fattorizzazione QR.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Fattorizzazione QR}
+\label{sec:qr}
+%------------------------------------------------------------
+
+\begin{definition}[Fattorizzazione QR]
+Per $A \in \R^{m \times n}$ con $m \geq n$ e $\operatorname{rank}(A) = n$, la
+\emph{fattorizzazione QR} è:
+\begin{equation}
+  A = QR = Q \begin{pmatrix} \hat{R} \\ 0 \end{pmatrix},
+  \label{eq:QR}
+\end{equation}
+dove $Q \in \R^{m \times m}$ è ortogonale ($Q^\top Q = I$) e
+$\hat{R} \in \R^{n \times n}$ è triangolare superiore con elementi diagonali
+positivi (se si richiede unicità).
+\end{definition}
+
+\subsection{Soluzione del problema dei minimi quadrati tramite QR}
+
+Poiché la moltiplicazione per una matrice ortogonale non cambia la norma
+euclidea:
+\begin{align}
+  \|Ax - b\|_2^2 &= \|QRx - b\|_2^2 = \|Q(Rx - Q^\top b)\|_2^2
+                  = \|Rx - Q^\top b\|_2^2 \nonumber \\
+  &= \left\|\begin{pmatrix}\hat{R}x - g_1 \\ -g_2\end{pmatrix}\right\|_2^2
+   = \|\hat{R}x - g_1\|_2^2 + \|g_2\|_2^2,
+  \label{eq:mq_qr}
+\end{align}
+dove $Q^\top b = \begin{pmatrix}g_1 \\ g_2\end{pmatrix}$ con
+$g_1 \in \R^n$, $g_2 \in \R^{m-n}$.
+
+Il minimo si raggiunge quando $\hat{R}x = g_1$, sistema triangolare
+superiore facilmente risolubile. Il residuo minimo vale $\|g_2\|_2$.
+
+%------------------------------------------------------------
+\section{Matrici di Householder}
+\label{sec:householder}
+%------------------------------------------------------------
+
+Le \textbf{riflessioni di Householder} permettono di calcolare la fattorizzazione
+QR in modo numericamente stabile.
+
+\begin{definition}[Matrice di Householder]
+Data una direzione $v \in \R^m$ con $\|v\|_2 = 1$, la \emph{matrice di
+Householder} è:
+\begin{equation}
+  H = I - 2vv^\top.
+  \label{eq:householder}
+\end{equation}
+\end{definition}
+
+$H$ è \emph{simmetrica} e \emph{ortogonale}: $H^\top = H$ e $H^2 = I$, quindi
+$H^{-1} = H^\top = H$.
+
+\subsection{Costruzione della fattorizzazione QR}
+
+Dato un vettore $z \in \R^m$, si sceglie $v$ tale che $Hz = \pm\|z\|_2\,e_1$.
+Applicando successivamente $n$ riflessioni:
+\begin{equation}
+  H_n \cdots H_2 H_1\, A = \begin{pmatrix}\hat{R} \\ 0\end{pmatrix},
+  \label{eq:QR_householder}
+\end{equation}
+da cui $Q^\top = H_n \cdots H_1$ e $Q = H_1 \cdots H_n$ (poiché $H_k^{-1} = H_k$).
+
+\begin{algorithm}[htbp]
+  \caption{Fattorizzazione QR tramite riflessioni di Householder}
+  \label{alg:qr_householder}
+  \begin{algorithmic}[1]
+    \Require $A \in \R^{m \times n}$ con $m \geq n$, $\operatorname{rank}(A)=n$
+    \Ensure $Q \in \R^{m \times m}$ ortogonale, $\hat{R} \in \R^{n \times n}$
+            triangolare superiore, $A = Q\begin{pmatrix}\hat{R}\\0\end{pmatrix}$
+    \State $R \gets A$; \; $Q \gets I_m$
+    \For{$k = 1$ \textbf{to} $n$}
+      \State $z \gets R(k:m, k)$ \Comment{colonna $k$ dal pivot in giù}
+      \State $v \gets z + \operatorname{sign}(z_1)\|z\|_2\,e_1$; \;
+             $v \gets v / \|v\|_2$
+      \State $H_k \gets I_{m-k+1} - 2vv^\top$
+      \State $R(k:m, k:n) \gets H_k\, R(k:m, k:n)$
+      \State $Q(1:m, k:m) \gets Q(1:m, k:m)\, H_k^\top$
+    \EndFor
+    \State \Return $Q$, $\hat{R} \gets R(1:n, 1:n)$
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{Confronto: QR vs.\ equazioni normali}
+
+\begin{table}[htbp]
+  \centering
+  \caption{Confronto tra i metodi per i minimi quadrati.}
+  \label{tab:mq_confronto}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Metodo} & \textbf{Costo} & \textbf{Stabilità} \\
+    \midrule
+    Equazioni normali ($A^\top A$) & $mn^2 + \frac{n^3}{3}$ & Scarsa \\
+    Fattorizzazione QR (Householder) & $2mn^2 - \frac{2n^3}{3}$ & Buona \\
+    SVD                              & $\mathcal{O}(mn^2)$ & Ottima (usata quando $A$ è quasi singolare) \\
+    \bottomrule
+  \end{tabular}
+\end{table}

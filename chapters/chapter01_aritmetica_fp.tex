@@ -1,0 +1,281 @@
+%=============================================================
+% Capitolo 1 — Aritmetica in Virgola Mobile
+%=============================================================
+\chapter{Aritmetica in Virgola Mobile}
+\label{ch:fp}
+
+\section{Introduzione: il problema della rappresentazione}
+
+Nei calcolatori moderni i numeri reali vengono rappresentati con un numero
+\emph{finito} di cifre binarie. Questo comporta due conseguenze fondamentali:
+\begin{itemize}
+  \item non tutti i numeri reali sono rappresentabili esattamente;
+  \item le operazioni aritmetiche introducono errori di arrotondamento.
+\end{itemize}
+
+Comprendere questi limiti è essenziale per valutare l'affidabilità dei risultati
+numerici.
+
+%------------------------------------------------------------
+\section{Sistema posizionale e notazione scientifica}
+%------------------------------------------------------------
+
+Un numero reale $x$ viene espresso in \emph{notazione scientifica normalizzata} in
+base $b$ come:
+\begin{equation}
+  x = \pm\, m \cdot b^e,
+  \label{eq:scientific}
+\end{equation}
+dove:
+\begin{itemize}
+  \item $b \geq 2$ è la \emph{base} del sistema (tipicamente $b = 2$ per i calcolatori);
+  \item $m$ è la \emph{mantissa} (o significando), con $1 \leq m < b$;
+  \item $e$ è l'\emph{esponente} (intero con segno).
+\end{itemize}
+
+\begin{example}[Notazione scientifica in base 10]
+Il numero $\pi \approx 3{,}141592\ldots$ si scrive come
+\[
+  3{,}141592 \times 10^{0}.
+\]
+Con 5 cifre disponibili per la mantissa, la rappresentazione è
+$3{,}14159 \times 10^{0}$ (troncamento) oppure $3{,}14160 \times 10^{0}$ (arrotondamento).
+\end{example}
+
+%------------------------------------------------------------
+\section{Lo standard IEEE 754}
+%------------------------------------------------------------
+
+Lo standard \textbf{IEEE 754} (1985, aggiornato nel 2008 e 2019) definisce il formato
+dei numeri in virgola mobile usati in praticamente tutti i processori moderni.
+
+\subsection{Formato della parola binaria}
+
+Un numero floating-point è memorizzato in una parola di $w$ bit suddivisa in tre campi:
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Segno} (1 bit) & \textbf{Esponente} ($e$ bit) & \textbf{Mantissa} ($m$ bit) \\
+\hline
+\end{tabular}
+\end{center}
+
+\medskip
+I due formati principali sono riassunti in \cref{tab:ieee754}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Formati IEEE 754 a precisione singola e doppia.}
+  \label{tab:ieee754}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Formato} & \textbf{Bit totali} & \textbf{Bit segno} &
+    \textbf{Bit esponente} & \textbf{Bit mantissa} \\
+    \midrule
+    Precisione singola & 32 & 1 & 8  & 23 \\
+    Precisione doppia  & 64 & 1 & 11 & 52 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Il bit nascosto}
+
+Nella notazione normalizzata la prima cifra della mantissa è sempre 1 (in base 2),
+quindi non viene memorizzata esplicitamente: si guadagna così un bit di precisione
+\emph{gratuitamente}. Questo bit è detto \textbf{bit nascosto} (o \emph{implicit
+leading bit}).
+
+La mantissa effettiva è quindi $1.f_1f_2\ldots f_m$ dove $f_i \in \{0,1\}$.
+
+\subsection{Configurazioni speciali}
+
+Con $e_\text{bit}$ bit per l'esponente si hanno $2^{e_\text{bit}}$ configurazioni
+possibili. Due di queste sono riservate a valori speciali:
+\begin{itemize}
+  \item \texttt{+Inf}, \texttt{-Inf} — overflow;
+  \item \texttt{NaN} (Not a Number) — operazione non definita (es.\ $0/0$).
+\end{itemize}
+Le rimanenti $2^{e_\text{bit}} - 2$ codificano gli esponenti normali. Ad esempio in
+precisione singola si hanno $256 - 2 = 254$ esponenti utilizzabili.
+
+\subsection{Numeri denormalizzati}
+
+I \textbf{numeri denormalizzati} (o subnormali) permettono di rappresentare valori
+molto piccoli, al di sotto del minimo normalizzato, a prezzo di una riduzione della
+precisione. In questo caso il bit nascosto viene posto a 0:
+\[
+  x = \pm\, 0.f_1f_2\ldots f_m \times b^{e_\min}.
+\]
+
+%------------------------------------------------------------
+\section{Insieme dei numeri di macchina}
+%------------------------------------------------------------
+
+\begin{definition}[Insieme dei numeri di macchina]
+L'insieme $\F \subset \R$ dei \emph{numeri di macchina} in base $b$, con $t$ cifre di
+mantissa ed esponente nell'intervallo $[e_\min, e_\max]$, è:
+\begin{equation}
+  \F(b, t, e_\min, e_\max) = \bigl\{ x \in \R \;:\; x = \pm\, b^e \sum_{i=1}^{t} d_i\, b^{-i},\;
+  e \in [e_\min, e_\max],\; d_i \in \{0,\ldots,b{-}1\},\; d_1 \neq 0 \bigr\} \cup \{0\}.
+  \label{eq:macchina}
+\end{equation}
+\end{definition}
+
+\begin{remark}
+$\F$ è un insieme \emph{finito} e \emph{discreto}: i numeri di macchina non sono
+distribuiti uniformemente sulla retta reale, ma più densamente vicino allo zero e più
+rade man mano che ci si allontana.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Troncamento e arrotondamento}
+%------------------------------------------------------------
+
+Sia $x \in \R$ un numero non rappresentabile esattamente in $\F$. L'operazione
+$\fl : \R \to \F$ che associa a $x$ il numero di macchina più vicino si chiama
+\textbf{arrotondamento}.
+
+\subsection{Troncamento}
+
+Il \emph{troncamento} della mantissa a $t$ cifre è:
+\begin{equation}
+  \fl_\text{tronc}(x) = \text{sign}(x) \cdot b^e \cdot \sum_{i=1}^{t} d_i\, b^{-i}.
+\end{equation}
+
+\subsection{Arrotondamento al più vicino}
+
+L'\emph{arrotondamento al più vicino} (default IEEE) sceglie il numero di macchina più
+prossimo a $x$:
+\begin{equation}
+  \fl_\text{arr}(x) = \arg\min_{y \in \F} |x - y|.
+\end{equation}
+
+In caso di equidistanza si applica la regola \emph{round half to even} (arrotondamento
+bancario).
+
+%------------------------------------------------------------
+\section{Errore di arrotondamento ed epsilon di macchina}
+%------------------------------------------------------------
+
+\begin{definition}[Errore relativo di rappresentazione]
+L'errore relativo commesso nell'approssimare $x \neq 0$ con $\fl(x)$ è:
+\begin{equation}
+  \delta = \frac{\fl(x) - x}{x}.
+  \label{eq:errore_rel}
+\end{equation}
+\end{definition}
+
+\begin{definition}[Epsilon di macchina]
+L'\emph{epsilon di macchina} $\eps_M$ è il più piccolo numero positivo tale che
+\begin{equation}
+  \fl(1 + \eps_M) > 1.
+  \label{eq:eps}
+\end{equation}
+Equivalentemente, $\eps_M$ è la distanza relativa tra 1 e il successivo numero di
+macchina.
+\end{definition}
+
+Per il formato IEEE 754 si ha:
+\begin{align}
+  \eps_M^{(32)} &= 2^{-23} \approx 1.19 \times 10^{-7} \quad \text{(singola precisione)}, \\
+  \eps_M^{(64)} &= 2^{-52} \approx 2.22 \times 10^{-16} \quad \text{(doppia precisione)}.
+\end{align}
+
+\begin{theorem}[Limitazione dell'errore relativo]
+\label{thm:errore_rel}
+Per ogni $x \in \R$ con $|x|$ nel range dei numeri normalizzati vale:
+\begin{equation}
+  |\delta| = \left|\frac{\fl(x) - x}{x}\right| \leq \frac{1}{2}\, b^{1-t} = \frac{\eps_M}{2}.
+  \label{eq:bound_errore}
+\end{equation}
+Equivalentemente, $\fl(x) = x(1 + \delta)$ con $|\delta| \leq \eps_M/2$.
+\end{theorem}
+
+\begin{remark}[Underflow]
+Se un numero $x \neq 0$ è troppo piccolo in valore assoluto per essere rappresentato
+come normalizzato (e anche come denormalizzato), si ha \emph{underflow}: il numero
+viene arrotondato a zero. Questo non è la stessa cosa di $x = 0$.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Algoritmo di Horner}
+\label{sec:horner}
+%------------------------------------------------------------
+
+La valutazione di un polinomio
+\begin{equation}
+  p(x) = a_n x^n + a_{n-1} x^{n-1} + \cdots + a_1 x + a_0
+  \label{eq:polinomio}
+\end{equation}
+richiede, con la formula diretta, $n$ addizioni e $\frac{n(n+1)}{2}$ moltiplicazioni.
+
+L'\textbf{algoritmo di Horner} (o schema di Ruffini–Horner) riduce il costo a $n$
+addizioni e $n$ moltiplicazioni, riscrivendo il polinomio in forma annidiata:
+\begin{equation}
+  p(x) = a_0 + x\bigl(a_1 + x\bigl(a_2 + \cdots + x(a_{n-1} + x\, a_n)\cdots\bigr)\bigr).
+  \label{eq:horner}
+\end{equation}
+
+\begin{algorithm}[htbp]
+  \caption{Algoritmo di Horner per la valutazione di polinomi}
+  \label{alg:horner}
+  \begin{algorithmic}[1]
+    \Require Coefficienti $a_0, a_1, \ldots, a_n$; punto di valutazione $x$
+    \Ensure $p \approx p(x)$
+    \State $p \gets a_n$
+    \For{$k = n-1$ \textbf{downto} $0$}
+      \State $p \gets p \cdot x + a_k$
+    \EndFor
+    \State \Return $p$
+  \end{algorithmic}
+\end{algorithm}
+
+Il costo computazionale dell'Algoritmo~\ref{alg:horner} è $\mathcal{O}(n)$.
+
+%------------------------------------------------------------
+\section{Propagazione degli errori}
+\label{sec:propagazione}
+%------------------------------------------------------------
+
+Sia $f : \R^n \to \R$ una funzione differenziabile. Se i dati $x_1,\ldots,x_n$ sono
+affetti da errori assoluti $\Delta x_1,\ldots,\Delta x_n$, l'errore assoluto sul
+risultato è approssimato dalla formula di propagazione:
+\begin{equation}
+  \Delta f \approx \sum_{i=1}^{n} \left|\frac{\partial f}{\partial x_i}\right| \Delta x_i.
+  \label{eq:propagazione}
+\end{equation}
+
+In termini di errori relativi (con $\Delta x_i = |\eps_i| |x_i|$):
+\begin{equation}
+  \frac{\Delta f}{|f|} \approx \sum_{i=1}^{n} \left|\frac{\partial f}{\partial x_i}\right|
+  \frac{|x_i|}{|f|} |\eps_i|.
+  \label{eq:propagazione_rel}
+\end{equation}
+
+\begin{example}[Sottrazione catastrofica]
+La sottrazione di due numeri quasi uguali $a \approx b$ amplifica enormemente l'errore
+relativo. Se $a = 1{,}0001$ e $b = 1{,}0000$, entrambi con errore relativo $10^{-4}$,
+l'errore relativo sulla differenza $a - b = 0{,}0001$ può raggiungere il 100\%.
+Questo fenomeno è noto come \emph{cancellazione numerica}.
+\end{example}
+
+%------------------------------------------------------------
+\section{Aritmetica in virgola mobile IEEE}
+\label{sec:aritmetica_ieee}
+%------------------------------------------------------------
+
+Lo standard IEEE 754 garantisce che le operazioni elementari $+,-,\times,\div$ (e la
+radice quadrata) siano eseguite come se il calcolo fosse fatto con precisione infinita
+e poi arrotondato al più vicino numero di macchina:
+\begin{equation}
+  \fl(x \circ y) = \fl(x \circ_\text{esatta} y) = (x \circ y)(1 + \delta),
+  \quad |\delta| \leq \frac{\eps_M}{2},
+  \label{eq:ieee_op}
+\end{equation}
+dove $\circ \in \{+,-,\times,\div\}$.
+
+\begin{remark}[Registri estesi]
+Alcuni processori usano registri interni a 80 bit per i calcoli intermedi, riducendo
+l'accumulo degli errori di arrotondamento.
+\end{remark}

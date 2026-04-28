@@ -1,0 +1,173 @@
+%=============================================================
+% Capitolo 6 — Interpolazione Polinomiale
+%=============================================================
+\chapter{Interpolazione e Approssimazione di Funzioni}
+\label{ch:interpolazione}
+
+\section{Motivazione}
+
+In molte applicazioni si dispone di un insieme di \emph{dati discreti}
+$\{(x_i, f_i)\}_{i=0}^n$ (misure, simulazioni, valori di una funzione ignota) e si
+vuole:
+\begin{itemize}
+  \item \textbf{Interpolare}: trovare una funzione $p$ che passi esattamente per tutti
+        i punti, cioè $p(x_i) = f_i$ per $i = 0,\ldots,n$;
+  \item \textbf{Approssimare}: trovare una funzione $p$ che si avvicini ai dati nel
+        senso di qualche norma, senza necessariamente passare per tutti i punti.
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Interpolazione polinomiale}
+\label{sec:interp_polin}
+%------------------------------------------------------------
+
+La scelta più naturale per $p$ è un \textbf{polinomio}: lo spazio
+$\mathcal{P}_n$ dei polinomi di grado $\leq n$ ha dimensione $n+1$, quindi con
+$n+1$ punti si ha (genericamente) un unico polinomio interpolante.
+
+\begin{theorem}[Esistenza e unicità del polinomio interpolante]
+Dati $n+1$ punti distinti $x_0 < x_1 < \cdots < x_n$ e valori $f_0,\ldots,f_n$,
+esiste un unico polinomio $p_n \in \mathcal{P}_n$ tale che
+\begin{equation}
+  p_n(x_i) = f_i, \quad i = 0, 1, \ldots, n.
+  \label{eq:interp_cond}
+\end{equation}
+\end{theorem}
+
+\subsection{Matrice di Vandermonde}
+
+Nella \emph{base delle potenze} $\{1, x, x^2, \ldots, x^n\}$, scrivendo
+$p_n(x) = \sum_{j=0}^n a_j x^j$, le condizioni di interpolazione diventano il
+sistema lineare:
+\begin{equation}
+  \underbrace{
+  \begin{pmatrix}
+    1      & x_0    & x_0^2  & \cdots & x_0^n \\
+    1      & x_1    & x_1^2  & \cdots & x_1^n \\
+    \vdots & \vdots & \vdots & \ddots & \vdots \\
+    1      & x_n    & x_n^2  & \cdots & x_n^n
+  \end{pmatrix}
+  }_{V \text{ (matrice di Vandermonde)}}
+  \begin{pmatrix} a_0 \\ a_1 \\ \vdots \\ a_n \end{pmatrix}
+  =
+  \begin{pmatrix} f_0 \\ f_1 \\ \vdots \\ f_n \end{pmatrix}.
+  \label{eq:vandermonde}
+\end{equation}
+
+\begin{remark}
+La matrice di Vandermonde è invertibile se e solo se le ascisse $x_i$ sono tutte
+distinte. Tuttavia, per $n$ grande $V$ tende ad essere \emph{mal condizionata}: è
+preferibile usare la base di Lagrange.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Polinomio di Lagrange}
+\label{sec:lagrange}
+%------------------------------------------------------------
+
+\begin{definition}[Polinomi di base di Lagrange]
+I \emph{polinomi di base di Lagrange} associati alle ascisse $x_0,\ldots,x_n$ sono:
+\begin{equation}
+  L_k^{(n)}(x) = \prod_{\substack{j=0 \\ j \neq k}}^n \frac{x - x_j}{x_k - x_j},
+  \quad k = 0, 1, \ldots, n.
+  \label{eq:lagrange_base}
+\end{equation}
+\end{definition}
+
+Notare che $L_k^{(n)}(x_j) = \delta_{kj}$ (delta di Kronecker). Il polinomio
+interpolante si scrive allora in \emph{forma di Lagrange}:
+\begin{equation}
+  p_n(x) = \sum_{k=0}^n f_k\, L_k^{(n)}(x).
+  \label{eq:lagrange_polin}
+\end{equation}
+
+\begin{remark}
+La forma di Lagrange mostra che \emph{stesso spazio, stessa soluzione}: qualunque
+base si usi per $\mathcal{P}_n$, il polinomio interpolante è unico.
+\end{remark}
+
+%------------------------------------------------------------
+\section{Errore di interpolazione}
+\label{sec:errore_interp}
+%------------------------------------------------------------
+
+\begin{theorem}[Errore del polinomio interpolante]
+\label{thm:errore_interp}
+Sia $f \in C^{n+1}([a,b])$ e $p_n$ il polinomio interpolante nei punti
+$x_0,\ldots,x_n \in [a,b]$. Allora, per ogni $\bar{x} \in [a,b]$, esiste
+$\xi = \xi(\bar{x}) \in (a,b)$ tale che:
+\begin{equation}
+  e_n(\bar{x}) = f(\bar{x}) - p_n(\bar{x})
+  = \frac{f^{(n+1)}(\xi)}{(n+1)!}\,\omega_{n+1}(\bar{x}),
+  \label{eq:errore_interp}
+\end{equation}
+dove
+\begin{equation}
+  \omega_{n+1}(x) = \prod_{i=0}^n (x - x_i).
+  \label{eq:omega}
+\end{equation}
+\end{theorem}
+
+\begin{proof}[Schema della dimostrazione]
+Si definisce $g(x) = f(x) - p_n(x) - R_n(\bar{x})\,\omega_{n+1}(x)$, dove
+$R_n(\bar{x})$ è scelto affinché $g(\bar{x}) = 0$. Allora $g$ ha (almeno) $n+2$
+zeri in $[a,b]$: i punti $x_0,\ldots,x_n$ e $\bar{x}$. Per il teorema di Rolle,
+$g^{(n+1)}$ ha almeno uno zero $\xi$ in $(a,b)$, da cui si ricava la formula.
+\end{proof}
+
+\subsection{Stima dell'errore}
+
+Maggiorando \cref{eq:errore_interp}:
+\begin{equation}
+  \|e_n\|_\infty \leq \frac{M_{n+1}}{(n+1)!}\,\|\omega_{n+1}\|_\infty,
+  \label{eq:bound_errore_interp}
+\end{equation}
+dove $M_{n+1} = \max_{x \in [a,b]} |f^{(n+1)}(x)|$ e
+$\|\omega_{n+1}\|_\infty = \max_{x \in [a,b]} |\omega_{n+1}(x)|$.
+
+\begin{example}
+Per nodi equispaziati su $[a,b]$ con passo $h = (b-a)/n$:
+\[
+  \|\omega_{n+1}\|_\infty \leq \frac{h^{n+1}\, n!}{4},
+\]
+quindi $\|e_n\|_\infty \leq \frac{M_{n+1}\,h^{n+1}}{4(n+1)}$.
+\end{example}
+
+%------------------------------------------------------------
+\section{Costante di Lebesgue}
+\label{sec:lebesgue}
+%------------------------------------------------------------
+
+\begin{definition}[Costante di Lebesgue]
+La \emph{costante di Lebesgue} associata alle ascisse $x_0,\ldots,x_n$ è:
+\begin{equation}
+  \Lambda_n = \max_{x \in [a,b]} \sum_{k=0}^n |L_k^{(n)}(x)|.
+  \label{eq:lebesgue}
+\end{equation}
+\end{definition}
+
+La costante di Lebesgue misura il \emph{condizionamento} del problema di
+interpolazione:
+
+\begin{theorem}[Legame tra errore di interpolazione e costante di Lebesgue]
+Sia $p^*_n$ la migliore approssimazione polinomiale di $f$ in $\mathcal{P}_n$
+(nel senso della norma $\|\cdot\|_\infty$). Allora:
+\begin{equation}
+  \|f - p_n\|_\infty \leq (1 + \Lambda_n)\,\|f - p^*_n\|_\infty.
+  \label{eq:lebesgue_bound}
+\end{equation}
+\end{theorem}
+
+\begin{remark}[Crescita di $\Lambda_n$]
+Per nodi equispaziati, $\Lambda_n$ cresce esponenzialmente con $n$
+(\emph{fenomeno di Runge}): l'interpolazione polinomiale di alto grado con nodi
+equispaziati può divergere. Nodi di Chebyshev minimizzano $\|\omega_{n+1}\|_\infty$
+e producono $\Lambda_n = \mathcal{O}(\log n)$.
+\end{remark}
+
+\begin{remark}[Spline]
+Per evitare il fenomeno di Runge, in pratica si preferisce usare le
+\textbf{funzioni spline}: polinomi di basso grado (tipicamente cubiche) raccordati
+con continuità sui sotto-intervalli. L'errore converge a zero al crescere di $n$
+senza fenomeni di oscillazione.
+\end{remark}
