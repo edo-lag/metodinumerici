@@ -1,0 +1,186 @@
+%=============================================================
+% Capitolo 8 — Autovalori e Decomposizione SVD
+%=============================================================
+\chapter{Autovalori e Decomposizione ai Valori Singolari}
+\label{ch:autovalori}
+
+\section{Autovalori e autovettori}
+\label{sec:autovalori}
+
+\begin{definition}
+Sia $A \in \mathbb{C}^{n \times n}$. Un numero $\lambda \in \mathbb{C}$ è un
+\emph{autovalore} di $A$ e $v \in \mathbb{C}^n \setminus \{0\}$ il corrispondente
+\emph{autovettore} se
+\begin{equation}
+  Av = \lambda v.
+  \label{eq:autovettore}
+\end{equation}
+\end{definition}
+
+\subsection{Equazione caratteristica}
+
+$\lambda$ è autovalore di $A$ se e solo se $\det(A - \lambda I) = 0$.
+Il polinomio $p(\lambda) = \det(A - \lambda I)$ di grado $n$ è detto
+\textbf{polinomio caratteristico}.
+
+\begin{remark}
+In generale, il calcolo degli autovalori tramite il polinomio caratteristico è
+\emph{numericamente instabile} per $n \geq 5$ (teorema di Abel-Ruffini). In pratica
+si utilizzano metodi iterativi (ad esempio l'algoritmo QR).
+\end{remark}
+
+\subsection{Proprietà fondamentali}
+
+Per $A \in \mathbb{C}^{n \times n}$ con autovalori $\lambda_1, \ldots, \lambda_n$:
+\begin{align}
+  \det(A)  &= \prod_{i=1}^n \lambda_i, \label{eq:det_autoval}\\
+  \operatorname{tr}(A) &= \sum_{i=1}^n \lambda_i. \label{eq:traccia}
+\end{align}
+
+\subsection{Molteplicità algebrica e geometrica}
+
+\begin{definition}
+\begin{itemize}
+  \item La \emph{molteplicità algebrica} $\mu_a(\lambda)$ è la molteplicità di
+        $\lambda$ come radice del polinomio caratteristico.
+  \item La \emph{molteplicità geometrica} $\mu_g(\lambda) = \dim\ker(A-\lambda I)$
+        è il numero di autovettori linearmente indipendenti.
+\end{itemize}
+Si ha sempre $\mu_g(\lambda) \leq \mu_a(\lambda)$.
+\end{definition}
+
+%------------------------------------------------------------
+\section{Raggio spettrale e cerchi di Gershgorin}
+\label{sec:gershgorin}
+%------------------------------------------------------------
+
+\begin{theorem}[Cerchi di Gershgorin]
+\label{thm:gershgorin}
+Ogni autovalore di $A$ appartiene all'unione dei \emph{cerchi di Gershgorin}:
+\begin{equation}
+  \bigcup_{i=1}^n \mathcal{D}_i, \quad \text{con } \mathcal{D}_i =
+  \left\{ z \in \mathbb{C} : |z - a_{ii}| \leq r_i \right\},\quad
+  r_i = \sum_{j \neq i} |a_{ij}|.
+  \label{eq:gershgorin}
+\end{equation}
+\end{theorem}
+
+I cerchi di Gershgorin forniscono una \emph{stima rapida e grossolana} della
+localizzazione degli autovalori, utile come sanity check prima di calcoli più
+accurati.
+
+%------------------------------------------------------------
+\section{Diagonalizzazione}
+\label{sec:diagonalizzazione}
+%------------------------------------------------------------
+
+\begin{definition}[Matrice diagonalizzabile]
+$A \in \mathbb{C}^{n \times n}$ è \emph{diagonalizzabile} se esiste una matrice
+invertibile $V$ tale che
+\begin{equation}
+  A = V \Lambda V^{-1}, \quad \Lambda = \operatorname{diag}(\lambda_1, \ldots, \lambda_n).
+  \label{eq:diag}
+\end{equation}
+Le colonne di $V$ sono gli autovettori di $A$.
+\end{definition}
+
+\begin{theorem}[Matrici hermitiane]
+Se $A = A^*$ (hermitiana; reale: $A = A^\top$), allora:
+\begin{enumerate}
+  \item Tutti gli autovalori sono \emph{reali};
+  \item Gli autovettori relativi ad autovalori distinti sono \emph{ortogonali};
+  \item $A$ è \emph{unitariamente diagonalizzabile}: $A = Q\Lambda Q^*$ con $Q$
+        unitaria.
+\end{enumerate}
+\end{theorem}
+
+%------------------------------------------------------------
+\section{Decomposizione ai valori singolari (SVD)}
+\label{sec:svd}
+%------------------------------------------------------------
+
+La SVD estende la diagonalizzazione a matrici \emph{rettangolari}.
+
+\begin{theorem}[Decomposizione ai valori singolari]
+\label{thm:svd}
+Per ogni $A \in \R^{m \times n}$ esiste la fattorizzazione
+\begin{equation}
+  A = U \Sigma V^\top,
+  \label{eq:svd}
+\end{equation}
+dove:
+\begin{itemize}
+  \item $U \in \R^{m \times m}$ è ortogonale (le colonne $u_i$ sono i
+        \emph{vettori singolari sinistri});
+  \item $V \in \R^{n \times n}$ è ortogonale (le colonne $v_i$ sono i
+        \emph{vettori singolari destri});
+  \item $\Sigma = \operatorname{diag}(\sigma_1, \ldots, \sigma_p) \in \R^{m \times n}$
+        con $p = \min(m,n)$ e $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_p \geq 0$
+        (\emph{valori singolari}).
+\end{itemize}
+\end{theorem}
+
+\subsection{Relazione tra SVD e autovalori}
+
+I valori singolari di $A$ sono le radici quadrate degli autovalori non negativi
+di $A^\top A$ (e di $AA^\top$):
+\begin{equation}
+  \sigma_i = \sqrt{\lambda_i(A^\top A)} = \sqrt{\lambda_i(AA^\top)}.
+  \label{eq:svd_autoval}
+\end{equation}
+Se $A$ è simmetrica definita positiva, $\sigma_i = \lambda_i$.
+
+\subsection{SVD troncata e approssimazione di rango basso}
+
+\begin{theorem}[Teorema di Eckart-Young]
+La migliore approssimazione di rango $k$ di $A$ nella norma spettrale e nella
+norma di Frobenius è:
+\begin{equation}
+  A_k = \sum_{i=1}^k \sigma_i\, u_i v_i^\top,
+  \label{eq:svd_troncata}
+\end{equation}
+con errore $\|A - A_k\|_2 = \sigma_{k+1}$.
+\end{theorem}
+
+\subsection{Applicazioni della SVD}
+
+\begin{itemize}
+  \item \textbf{Norma spettrale}: $\|A\|_2 = \sigma_1$.
+  \item \textbf{Numero di condizionamento}: $\kappa_2(A) = \sigma_1 / \sigma_n$ (per
+        $A$ quadrata non singolare).
+  \item \textbf{Rango numerico}: $\operatorname{rank}(A) = $ numero di valori singolari
+        significativamente non nulli.
+  \item \textbf{Pseudoinversa di Moore-Penrose}: $A^+ = V\Sigma^+ U^\top$ dove
+        $\Sigma^+$ inverte i valori singolari non nulli.
+  \item \textbf{Compressione dati}: la SVD troncata è usata in PCA, compressione di
+        immagini, sistemi di raccomandazione.
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Algoritmo QR per il calcolo degli autovalori}
+\label{sec:algo_qr}
+%------------------------------------------------------------
+
+L'\textbf{algoritmo QR} è il metodo standard per calcolare tutti gli autovalori
+di una matrice:
+
+\begin{algorithm}[htbp]
+  \caption{Algoritmo QR (forma base)}
+  \label{alg:qr_autoval}
+  \begin{algorithmic}[1]
+    \Require $A_0 = A \in \R^{n \times n}$, numero iterazioni $N$
+    \Ensure Approssimazione degli autovalori di $A$
+    \For{$k = 0, 1, 2, \ldots, N$}
+      \State Calcola la fattorizzazione $A_k = Q_k R_k$
+      \State $A_{k+1} \gets R_k Q_k$
+    \EndFor
+    \State \Return gli elementi diagonali di $A_N$
+  \end{algorithmic}
+\end{algorithm}
+
+La sequenza $A_k$ converge (sotto opportune ipotesi) a una matrice triangolare
+superiore (o quasi-triangolare reale) con gli autovalori sulla diagonale.
+
+In pratica, prima si riduce $A$ a forma di Hessenberg superiore
+(costo $\mathcal{O}(n^3)$), poi si applica l'algoritmo QR alla forma ridotta
+(ogni iterazione costa $\mathcal{O}(n^2)$).

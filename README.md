@@ -12,6 +12,9 @@ Appunti del corso di **Metodi Numerici per Data Science** in formato LaTeX, orga
 | `chapters/chapter03_metodi_diretti.tex` | Cap. 3 — Metodi diretti (eliminazione di Gauss, fattorizzazione LU) |
 | `chapters/chapter04_metodi_iterativi.tex` | Cap. 4 — Metodi iterativi (Jacobi, Gauss-Seidel, convergenza) |
 | `chapters/chapter05_condizionamento.tex` | Cap. 5 — Condizionamento dei sistemi lineari |
+| `chapters/chapter06_interpolazione.tex` | Cap. 6 — Interpolazione polinomiale, Lagrange, errore, costante di Lebesgue |
+| `chapters/chapter07_minimi_quadrati.tex` | Cap. 7 — Minimi quadrati, fattorizzazione QR, matrici di Householder |
+| `chapters/chapter08_autovalori_svd.tex` | Cap. 8 — Autovalori, SVD, algoritmo QR |
 | `images/` | Cartella per le immagini (da aggiungere) |
 
 ## Come compilare il PDF
@@ -64,3 +67,6 @@ metodinumerici/
 - **Metodi diretti**: sistemi triangolari, fattorizzazione LU, eliminazione di Gauss, pivoting.
 - **Metodi iterativi**: splitting della matrice, Jacobi, Gauss-Seidel, criteri di convergenza, dominanza diagonale.
 - **Condizionamento**: perturbazione dei dati, errore relativo, backward/forward error.
+- **Interpolazione polinomiale**: base di Lagrange, matrice di Vandermonde, errore di interpolazione, costante di Lebesgue, spline.
+- **Minimi quadrati**: equazioni normali, fattorizzazione QR, matrici di Householder.
+- **Autovalori e SVD**: polinomio caratteristico, cerchi di Gershgorin, decomposizione ai valori singolari, algoritmo QR.
